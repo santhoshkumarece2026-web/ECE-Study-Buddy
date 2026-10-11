@@ -30,16 +30,32 @@ Traditional textbooks often emphasize dense academic proofs and jargon over ment
   - Practical examples (commented C code snippets or circuit calculations with units).
   - Highlights of frequent student pitfalls and midterm exam warnings.
 
-- **Three-Question Concept Check Quizzes**:
-  - Generates 3 focused multiple-choice questions tailored to the selected subject and current topic.
-  - Interactive selection with immediate color-coded validation and icon feedback.
+- **Enhanced Conceptual Quizzes**:
+  - Configurable difficulty choices: **Beginner**, **Core Concept**, and **Exam Level**.
+  - Flexible quiz lengths: **3**, **5**, or **10 questions**.
+  - Interactive selection with immediate color-coded validation and option breakdown.
   - Comprehensive explanation disclosures detailing why the correct option is right and the reasoning behind common distractors.
-  - Real-time score tallying and option to generate new questions.
+  - **Retry Missed Questions**: Dedicated retry mode to immediately re-test only the questions answered incorrectly.
+  - Real-time score tallying, completion statistics, and instant reload.
 
-- **Additional Study Tools**:
+- **Persistent Bookmarks**:
+  - One-click bookmarking of AI study explanations.
+  - Searchable, filterable bookmarks modal stored in browser localStorage.
+  - Quick reopen, copy to clipboard, and deletion management.
+
+- **Learning Progress & Analytics**:
+  - Automatically tracks quiz attempts, questions answered, correct/incorrect rates, and subjects in localStorage.
+  - Progress modal displaying overall accuracy, subject-wise breakdown, recently studied topics, weakest topics, and active study streak (in days).
+
+- **Adaptive Revision Recommendations**:
+  - Automatically detects missed concepts and calculates weak topic priorities.
+  - Home screen recommendations highlighting focus areas with a single-click "Practice Weak Topic" launch button.
+
+- **Additional Study Tools & Polish**:
   - **Formula & Concept Cheatsheets**: High-yield formulas, diode equations, pointer syntax, and matrix identities accessible from the top navigation bar.
   - **Local Study History**: Automatically caches previous inquiries and answers in browser storage for rapid offline review.
-  - **Dark / Light Mode**: High-contrast theme toggle for comfortable studying in any lighting.
+  - **Persisted Dark / Light Mode**: High-contrast theme toggle saved to localStorage, honoring system preferences by default.
+  - **Request Cancellation**: Integrated `AbortController` guards preventing out-of-order race conditions when switching topics or updating queries.
 
 ---
 

@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { SubjectId, StudyHistoryItem, QuizQuestion } from './types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  SubjectId, 
+  StudyHistoryItem, 
+  QuizQuestion, 
+  BookmarkItem, 
+  QuizAttemptRecord, 
+  WeakTopicRecord, 
+  QuizDifficulty, 
+  QuizLength, 
+  QuizQuestionResult 
+} from './types';
 import { SUBJECTS } from './data/subjectData';
 import { Navbar } from './components/Navbar';
 import { SubjectTabs } from './components/SubjectTabs';
@@ -7,6 +17,9 @@ import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { QuizSection } from './components/QuizSection';
 import { FormulaSheetModal } from './components/FormulaSheetModal';
 import { StudyHistoryModal } from './components/StudyHistoryModal';
+import { BookmarksModal } from './components/BookmarksModal';
+import { ProgressModal } from './components/ProgressModal';
+import { WeakTopicsCard } from './components/WeakTopicsCard';
 import { 
   Sparkles, 
   CheckCircle, 
@@ -15,12 +28,103 @@ import {
   Check, 
   Bookmark, 
   BookOpen, 
-  ArrowRight,
-  HelpCircle,
-  Lightbulb,
-  ShieldAlert,
-  X
+  ArrowRight, 
+  Lightbulb, 
+  ShieldAlert, 
+  X, 
+  RotateCcw 
 } from 'lucide-react';
+
+function calculateStreakDays(records: QuizAttemptRecord[]): number {
+  if (!records || records.length === 0) return 0;
+  const dates = new Set<string>();
+  records.forEach((r) => {
+    const d = new Date(r.timestamp);
+    dates.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+  });
+
+  const now = new Date();
+  let check = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = `${check.getFullYear()}-${check.getMonth() + 1}-${check.getDate()}`;
+
+  let streak = 0;
+  if (!dates.has(todayKey)) {
+    check.setDate(check.getDate() - 1);
+    const yestKey = `${check.getFullYear()}-${check.getMonth() + 1}-${check.getDate()}`;
+    if (!dates.has(yestKey)) {
+      return 0;
+    }
+  }
+
+  while (dates.has(`${check.getFullYear()}-${check.getMonth() + 1}-${check.getDate()}`)) {
+    streak++;
+    check.setDate(check.getDate() - 1);
+  }
+
+  return streak;
+}
+
+function calculateWeakTopics(records: QuizAttemptRecord[]): WeakTopicRecord[] {
+  const map: Record<string, WeakTopicRecord> = {};
+  records.forEach((attempt) => {
+    if (attempt.questionResults) {
+      attempt.questionResults.forEach((q) => {
+        const topicName = q.subtopic || attempt.topic || 'Core Concept';
+        if (!map[topicName]) {
+          map[topicName] = {
+            topic: topicName,
+            subjectId: attempt.subjectId,
+            subjectName: attempt.subjectName,
+            incorrectCount: 0,
+            totalAttempts: 0,
+            lastAttempted: attempt.timestamp,
+          };
+        }
+        map[topicName].totalAttempts++;
+        if (!q.isCorrect) {
+          map[topicName].incorrectCount++;
+        }
+        if (attempt.timestamp > map[topicName].lastAttempted) {
+          map[topicName].lastAttempted = attempt.timestamp;
+        }
+      });
+    }
+  });
+
+  return Object.values(map)
+    .filter((t) => t.incorrectCount > 0)
+    .sort((a, b) => b.incorrectCount - a.incorrectCount || (b.incorrectCount / b.totalAttempts) - (a.incorrectCount / a.totalAttempts))
+    .slice(0, 5);
+}
+
+function validateQuizData(raw: unknown): QuizQuestion[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const valid: QuizQuestion[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      typeof (item as { question?: unknown }).question === 'string' &&
+      ((item as { question: string }).question.trim().length > 0) &&
+      Array.isArray((item as { options?: unknown }).options) &&
+      ((item as { options: unknown[] }).options.length >= 2) &&
+      typeof (item as { correctIndex?: unknown }).correctIndex === 'number' &&
+      (item as { correctIndex: number }).correctIndex >= 0 &&
+      (item as { correctIndex: number }).correctIndex < (item as { options: unknown[] }).options.length &&
+      typeof (item as { explanation?: unknown }).explanation === 'string'
+    ) {
+      valid.push({
+        question: (item as { question: string }).question.trim(),
+        options: (item as { options: unknown[] }).options.map((o) => String(o)),
+        correctIndex: (item as { correctIndex: number }).correctIndex,
+        explanation: (item as { explanation: string }).explanation.trim(),
+        difficulty: (item as { difficulty?: string }).difficulty || 'Core Concept',
+        subtopic: (item as { subtopic?: string }).subtopic ? String((item as { subtopic?: string }).subtopic) : undefined,
+      });
+    }
+  }
+  return valid.length > 0 ? valid : null;
+}
 
 export default function App() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<SubjectId>('electronics');
@@ -31,10 +135,12 @@ export default function App() {
   const [isAskingAI, setIsAskingAI] = useState<boolean>(false);
   const [askError, setAskError] = useState<string | null>(null);
 
-  // Quiz State
+  // Quiz State & Parameters
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState<boolean>(false);
   const [quizError, setQuizError] = useState<string | null>(null);
+  const [quizDifficulty, setQuizDifficulty] = useState<QuizDifficulty>('Core Concept');
+  const [quizLength, setQuizLength] = useState<QuizLength>(3);
 
   // Subject Switch Notification State
   const [switchNotice, setSwitchNotice] = useState<string | null>(null);
@@ -45,6 +151,14 @@ export default function App() {
   // Modals & Storage
   const [isFormulaModalOpen, setIsFormulaModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+  const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState<boolean>(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
+
+  // AbortController refs to prevent out-of-order race conditions
+  const askAbortRef = useRef<AbortController | null>(null);
+  const quizAbortRef = useRef<AbortController | null>(null);
+
+  // Local Study History
   const [history, setHistory] = useState<StudyHistoryItem[]>(() => {
     try {
       const saved = localStorage.getItem('ece_study_history');
@@ -54,9 +168,33 @@ export default function App() {
     }
   });
 
-  // Dark Mode State
+  // Persistent Bookmarks
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('ece_study_bookmarks');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Learning Progress & Quiz History
+  const [quizHistory, setQuizHistory] = useState<QuizAttemptRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('ece_quiz_progress');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persisted Dark Mode Preference
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
+      const saved = localStorage.getItem('ece_theme');
+      if (saved !== null) {
+        return saved === 'dark';
+      }
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
     } catch {
       return false;
@@ -65,15 +203,24 @@ export default function App() {
 
   const [copiedExplanation, setCopiedExplanation] = useState<boolean>(false);
   const [savedBookmarkToast, setSavedBookmarkToast] = useState<boolean>(false);
+  const [bookmarkToastMessage, setBookmarkToastMessage] = useState<string>('Saved to persistent bookmarks!');
 
+  // Synchronize Dark Mode to DOM and localStorage
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
+      try {
+        localStorage.setItem('ece_theme', 'dark');
+      } catch {}
     } else {
       document.documentElement.classList.remove('dark');
+      try {
+        localStorage.setItem('ece_theme', 'light');
+      } catch {}
     }
   }, [darkMode]);
 
+  // Synchronize Study History to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('ece_study_history', JSON.stringify(history));
@@ -81,6 +228,24 @@ export default function App() {
       console.warn('Failed to save history to localStorage', e);
     }
   }, [history]);
+
+  // Synchronize Bookmarks to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('ece_study_bookmarks', JSON.stringify(bookmarks));
+    } catch (e) {
+      console.warn('Failed to save bookmarks to localStorage', e);
+    }
+  }, [bookmarks]);
+
+  // Synchronize Quiz Progress to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('ece_quiz_progress', JSON.stringify(quizHistory));
+    } catch (e) {
+      console.warn('Failed to save quiz history to localStorage', e);
+    }
+  }, [quizHistory]);
 
   // Auto-dismiss subject switch notification after 4.5 seconds
   useEffect(() => {
@@ -93,17 +258,55 @@ export default function App() {
 
   const activeSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
 
-  // Switch subject handler with clean session reset
+  // Derived progress stats
+  const streakDays = useMemo(() => calculateStreakDays(quizHistory), [quizHistory]);
+  const weakTopics = useMemo(() => calculateWeakTopics(quizHistory), [quizHistory]);
+
+  // Check if active explanation is currently bookmarked
+  const isCurrentExplanationBookmarked = useMemo(() => {
+    if (!explanation) return false;
+    return bookmarks.some(
+      (b) => b.explanation === explanation || (b.question === question.trim() && b.subjectId === selectedSubjectId)
+    );
+  }, [bookmarks, explanation, question, selectedSubjectId]);
+
+  // Toggle bookmark for active explanation
+  const handleToggleBookmark = () => {
+    if (!explanation) return;
+    if (isCurrentExplanationBookmarked) {
+      setBookmarks((prev) => prev.filter((b) => b.explanation !== explanation && b.question !== question.trim()));
+      setBookmarkToastMessage('Removed from bookmarks');
+    } else {
+      const currentSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
+      const newBookmark: BookmarkItem = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        subjectId: selectedSubjectId,
+        subjectName: currentSubject.name,
+        topicTitle: question.slice(0, 50) || currentSubject.shortName,
+        question: question.trim() || currentSubject.name,
+        explanation,
+      };
+      setBookmarks((prev) => [newBookmark, ...prev]);
+      setBookmarkToastMessage('Saved to persistent bookmarks!');
+    }
+    setSavedBookmarkToast(true);
+    setTimeout(() => setSavedBookmarkToast(false), 2500);
+  };
+
+  // Switch subject handler with clean session reset & aborting in-flight requests
   const handleSelectSubject = (id: SubjectId) => {
-    // Requirement 8: Do not clear the conversation when selecting the already active subject
     if (id === selectedSubjectId) {
       return;
     }
 
+    // Abort pending fetches so previous queries cannot overwrite new subject
+    askAbortRef.current?.abort();
+    quizAbortRef.current?.abort();
+
     const nextSubject = SUBJECTS.find(s => s.id === id);
     const targetName = nextSubject ? nextSubject.name : id;
 
-    // Requirement 1, 2, 3 & 6: Detect change, clear current conversation & start fresh
     setSelectedSubjectId(id);
     setQuestion('');
     setExplanation(null);
@@ -112,16 +315,20 @@ export default function App() {
     setQuizError(null);
     setActiveView('explanation');
 
-    // Requirement 7: Show small message such as "Switched to C Programming. Started a new conversation."
     setSwitchNotice(`Switched to ${targetName}. Started a new conversation.`);
   };
 
-  // Handle Ask AI
+  // Handle Ask AI with AbortController
   const handleAskAI = async () => {
     if (!question.trim()) {
       setAskError('Please enter a question or select one of the syllabus topics.');
       return;
     }
+
+    // Abort previous in-flight ask request if any
+    askAbortRef.current?.abort();
+    const controller = new AbortController();
+    askAbortRef.current = controller;
 
     setSwitchNotice(null);
     setIsAskingAI(true);
@@ -137,6 +344,7 @@ export default function App() {
           subject: currentSubject.name,
           question: question.trim(),
         }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -157,29 +365,50 @@ export default function App() {
       };
 
       setHistory(prev => [newItem, ...prev.slice(0, 29)]);
-    } catch (err: any) {
-      setAskError(err?.message || 'Unable to load explanation. Please check your connection and try again.');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Request was aborted by newer query or subject switch, ignore quietly
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Unable to load explanation. Please check your connection and try again.';
+      setAskError(message);
     } finally {
       setIsAskingAI(false);
     }
   };
 
-  // Handle Generate 3 Quiz Questions
-  const handleGenerateQuiz = async () => {
+  // Handle Generate Quiz with AbortController, validation & options
+  const handleGenerateQuiz = async (
+    diff: QuizDifficulty = quizDifficulty,
+    count: QuizLength = quizLength,
+    overrideSubjectId?: SubjectId,
+    overrideTopic?: string
+  ) => {
+    // Abort previous in-flight quiz request if any
+    quizAbortRef.current?.abort();
+    const controller = new AbortController();
+    quizAbortRef.current = controller;
+
     setSwitchNotice(null);
     setIsGeneratingQuiz(true);
     setQuizError(null);
     setActiveView('quiz');
 
+    const targetSubId = overrideSubjectId || selectedSubjectId;
+    const targetSubject = SUBJECTS.find(s => s.id === targetSubId) || SUBJECTS[0];
+    const targetTopic = overrideTopic || question.trim();
+
     try {
-      const currentSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: currentSubject.name,
-          topic: question.trim() || undefined,
+          subject: targetSubject.name,
+          topic: targetTopic || undefined,
+          difficulty: diff,
+          count,
         }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -188,12 +417,54 @@ export default function App() {
         throw new Error(data.error || 'Failed to generate quiz from server.');
       }
 
-      setQuizQuestions(data.quiz);
-    } catch (err: any) {
-      setQuizError(err?.message || 'Could not generate quiz right now. Please try again.');
+      // Validate quiz structure before rendering
+      const validated = validateQuizData(data.quiz);
+      if (!validated) {
+        throw new Error('Received invalid quiz format from server. Please try again.');
+      }
+
+      setQuizQuestions(validated);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Could not generate quiz right now. Please try again.';
+      setQuizError(message);
     } finally {
       setIsGeneratingQuiz(false);
     }
+  };
+
+  // Adaptive revision trigger: practice recommended weak topic
+  const handlePracticeWeakTopic = (subjectId: SubjectId, topic: string) => {
+    setSelectedSubjectId(subjectId);
+    setQuestion(topic);
+    setExplanation(null);
+    setAskError(null);
+    setQuizError(null);
+    handleGenerateQuiz(quizDifficulty, quizLength, subjectId, topic);
+  };
+
+  // Record completed quiz attempt to localStorage progress
+  const handleRecordQuizAttempt = (data: {
+    totalQuestions: number;
+    correctAnswers: number;
+    difficulty: string;
+    questionResults: QuizQuestionResult[];
+  }) => {
+    const record: QuizAttemptRecord = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      subjectId: selectedSubjectId,
+      subjectName: activeSubject.name,
+      topic: question.trim() || activeSubject.shortName,
+      difficulty: data.difficulty,
+      totalQuestions: data.totalQuestions,
+      correctAnswers: data.correctAnswers,
+      questionResults: data.questionResults,
+    };
+
+    setQuizHistory((prev) => [record, ...prev.slice(0, 49)]);
   };
 
   const handleSelectSampleQuestion = (sample: string) => {
@@ -209,18 +480,17 @@ export default function App() {
     setTimeout(() => setCopiedExplanation(false), 2000);
   };
 
-  const handleSaveBookmark = () => {
-    setSavedBookmarkToast(true);
-    setTimeout(() => setSavedBookmarkToast(false), 2500);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Top Bar Contract Navigation */}
       <Navbar
         onOpenFormulas={() => setIsFormulaModalOpen(true)}
         onOpenHistory={() => setIsHistoryModalOpen(true)}
+        onOpenBookmarks={() => setIsBookmarksModalOpen(true)}
+        onOpenProgress={() => setIsProgressModalOpen(true)}
         historyCount={history.length}
+        bookmarksCount={bookmarks.length}
+        streakDays={streakDays}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
       />
@@ -232,31 +502,53 @@ export default function App() {
         <section className="space-y-2">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
                 <span>First-Year Engineering Learning Console</span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
                 <span>Semester 1 & 2 Foundations</span>
+                {streakDays > 0 && (
+                  <>
+                    <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      {streakDays}-Day Streak
+                    </span>
+                  </>
+                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white" style={{ textWrap: 'balance' }}>
                 ECE Study Buddy
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Clear conceptual explanations, intuitive real-world analogies, step-by-step mathematical derivations, and 3-question conceptual quizzes powered by Gemini.
+                Clear conceptual explanations, intuitive analogies, step-by-step mathematical derivations, persistent bookmarks, and adaptive practice quizzes.
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 shrink-0">
               <span className="font-medium text-slate-900 dark:text-slate-200">{activeSubject.name}</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
               <button
                 onClick={() => setIsFormulaModalOpen(true)}
                 className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium"
               >
-                View Cheatsheet
+                Cheatsheets
+              </button>
+              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+              <button
+                onClick={() => setIsProgressModalOpen(true)}
+                className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer font-medium"
+              >
+                Analytics
               </button>
             </div>
           </div>
         </section>
+
+        {/* Adaptive Revision Recommendation Banner (Displays when user has weak topics) */}
+        <WeakTopicsCard
+          weakTopics={weakTopics}
+          onPracticeTopic={handlePracticeWeakTopic}
+          onOpenProgress={() => setIsProgressModalOpen(true)}
+        />
 
         {/* Dashboard 2-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -353,15 +645,15 @@ export default function App() {
                   <span>{isAskingAI ? 'Analyzing...' : 'Ask AI'}</span>
                 </button>
 
-                {/* Generate 3 Quiz Questions Button */}
+                {/* Generate Quiz Questions Button */}
                 <button
                   type="button"
-                  onClick={handleGenerateQuiz}
+                  onClick={() => handleGenerateQuiz(quizDifficulty, quizLength)}
                   disabled={isGeneratingQuiz || isAskingAI}
                   className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>{isGeneratingQuiz ? 'Creating Quiz...' : '3 Quiz Questions'}</span>
+                  <span>{isGeneratingQuiz ? 'Creating Quiz...' : `Quiz (${quizLength} Qs)`}</span>
                 </button>
               </div>
 
@@ -418,7 +710,7 @@ export default function App() {
                     >
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>Quiz Mode</span>
-                      <span className="text-[10px] tabular-nums text-slate-400">(3)</span>
+                      <span className="text-[10px] tabular-nums text-slate-400">({quizQuestions.length})</span>
                     </button>
                   )}
                 </div>
@@ -443,19 +735,24 @@ export default function App() {
                       )}
                     </button>
 
+                    {/* Functional Persistent Bookmark Button */}
                     <button
-                      onClick={handleSaveBookmark}
-                      className="px-2.5 py-1 text-xs rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
-                      title="Saved in History"
+                      onClick={handleToggleBookmark}
+                      className={`px-2.5 py-1 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer font-medium ${
+                        isCurrentExplanationBookmarked
+                          ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800'
+                      }`}
+                      title={isCurrentExplanationBookmarked ? 'Remove bookmark' : 'Bookmark this explanation'}
                     >
-                      <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Saved</span>
+                      <Bookmark className={`w-3.5 h-3.5 ${isCurrentExplanationBookmarked ? 'fill-current text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                      <span>{isCurrentExplanationBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
                     </button>
 
                     <button
-                      onClick={handleGenerateQuiz}
+                      onClick={() => handleGenerateQuiz(quizDifficulty, quizLength)}
                       className="px-2.5 py-1 text-xs rounded-md text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors flex items-center gap-1 cursor-pointer font-medium"
-                      title="Generate 3 quiz questions for this topic"
+                      title="Generate quiz questions for this topic"
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
                       <span>Quiz Me</span>
@@ -478,7 +775,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     if (askError) handleAskAI();
-                    if (quizError) handleGenerateQuiz();
+                    if (quizError) handleGenerateQuiz(quizDifficulty, quizLength);
                   }}
                   className="px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-200 dark:bg-rose-900 hover:bg-rose-300 text-rose-900 dark:text-rose-100 transition-colors cursor-pointer shrink-0"
                 >
@@ -497,12 +794,12 @@ export default function App() {
                   <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                     {isAskingAI
                       ? `Synthesizing explanation for ${activeSubject.name}...`
-                      : `Crafting 3 conceptual questions for ${activeSubject.name}...`}
+                      : `Crafting ${quizLength} conceptual questions for ${activeSubject.name}...`}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
                     {isAskingAI
                       ? 'Translating technical formulas into plain analogies, step-by-step logic, and exam warnings.'
-                      : 'Setting up 4 multiple-choice options with thorough explanations for each.'}
+                      : `Setting up ${quizLength} questions at ${quizDifficulty} level with detailed rationales.`}
                   </p>
                 </div>
               </div>
@@ -514,9 +811,9 @@ export default function App() {
                 
                 {/* Topic Title Bar */}
                 <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-1">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
                     <span className="font-semibold text-blue-600 dark:text-blue-400">{activeSubject.name}</span>
-                    <span aria-hidden="true">·</span>
+                    <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
                     <span>Conceptual Breakdown</span>
                   </div>
                   <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
@@ -531,9 +828,9 @@ export default function App() {
 
                 {/* Toast feedback */}
                 {savedBookmarkToast && (
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2 animate-in fade-in">
                     <Check className="w-4 h-4 text-blue-600" />
-                    <span>Saved to your local <strong>Study History</strong> for quick revision.</span>
+                    <span>{bookmarkToastMessage}</span>
                   </div>
                 )}
               </div>
@@ -544,8 +841,20 @@ export default function App() {
               <QuizSection
                 questions={quizQuestions}
                 subjectName={activeSubject.name}
-                onGenerateNew={handleGenerateQuiz}
+                topicName={question.trim() || activeSubject.shortName}
+                selectedDifficulty={quizDifficulty}
+                selectedLength={quizLength}
+                onChangeDifficulty={(d) => {
+                  setQuizDifficulty(d);
+                  handleGenerateQuiz(d, quizLength);
+                }}
+                onChangeLength={(l) => {
+                  setQuizLength(l);
+                  handleGenerateQuiz(quizDifficulty, l);
+                }}
+                onGenerateNew={(d, l) => handleGenerateQuiz(d || quizDifficulty, l || quizLength)}
                 isGeneratingNew={isGeneratingQuiz}
+                onRecordAttempt={handleRecordQuizAttempt}
               />
             )}
 
@@ -623,15 +932,15 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 py-5 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>ECE Study Buddy · First-Year Engineering AI Companion</span>
-          <div className="flex items-center gap-3">
-            <span>Basic Electronics</span>
-            <span aria-hidden="true">·</span>
+          <span>ECE Study Buddy - First-Year Engineering AI Companion</span>
+          <div className="flex items-center gap-2 text-slate-400">
+            <span>Electronics</span>
+            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
             <span>C Programming</span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
             <span>Mathematics</span>
-            <span aria-hidden="true">·</span>
-            <span>General Engineering</span>
+            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
+            <span>General Engg.</span>
           </div>
         </div>
       </footer>
@@ -654,6 +963,30 @@ export default function App() {
           setActiveView('explanation');
         }}
         onClearHistory={() => setHistory([])}
+      />
+
+      {/* Bookmarks Modal */}
+      <BookmarksModal
+        isOpen={isBookmarksModalOpen}
+        onClose={() => setIsBookmarksModalOpen(false)}
+        bookmarks={bookmarks}
+        onSelectBookmark={(item) => {
+          setSelectedSubjectId(item.subjectId);
+          setQuestion(item.question);
+          setExplanation(item.explanation);
+          setActiveView('explanation');
+        }}
+        onDeleteBookmark={(id) => setBookmarks((prev) => prev.filter((b) => b.id !== id))}
+        onClearBookmarks={() => setBookmarks([])}
+      />
+
+      {/* Learning Progress Modal */}
+      <ProgressModal
+        isOpen={isProgressModalOpen}
+        onClose={() => setIsProgressModalOpen(false)}
+        quizHistory={quizHistory}
+        onPracticeTopic={handlePracticeWeakTopic}
+        onClearProgress={() => setQuizHistory([])}
       />
     </div>
   );

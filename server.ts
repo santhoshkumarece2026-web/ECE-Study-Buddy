@@ -68,6 +68,97 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
       difficulty: 'Exam Level',
       subtopic: 'BJT Transistor',
     },
+    {
+      question: 'In an ideal Operational Amplifier (Op-Amp) with negative feedback, why is there a "virtual ground" at the inverting terminal when the non-inverting terminal is grounded?',
+      options: [
+        'Because the open-loop gain is infinite, forcing the differential input voltage (V+ - V-) to zero',
+        'Because the output is physically shorted to earth ground',
+        'Because the input impedance is zero ohms',
+        'Because current flows directly into the internal power supply',
+      ],
+      correctIndex: 0,
+      explanation: 'Because an ideal op-amp has infinite open-loop voltage gain (A_OL → ∞), for a finite output voltage V_out, the differential input (V+ - V-) must equal V_out / A_OL ≈ 0. When V+ is grounded (0V), V- is held at 0V ("virtual ground").',
+      difficulty: 'Core Concept',
+      subtopic: 'Operational Amplifiers',
+    },
+    {
+      question: 'What is the ripple frequency of a full-wave bridge rectifier operating on a 50 Hz AC mains supply?',
+      options: [
+        '25 Hz',
+        '50 Hz',
+        '100 Hz',
+        '200 Hz',
+      ],
+      correctIndex: 2,
+      explanation: 'A full-wave rectifier conducts during both the positive and negative half-cycles of the AC input. Therefore, the output pulsating DC has twice the input line frequency: 2 × 50 Hz = 100 Hz.',
+      difficulty: 'Beginner',
+      subtopic: 'Rectifiers & Power Supplies',
+    },
+    {
+      question: 'How is a Zener diode normally biased when used as a shunt voltage regulator?',
+      options: [
+        'Forward biased beyond 0.7V',
+        'Reverse biased in its breakdown region',
+        'Unbiased (open-circuit)',
+        'Alternating between forward and reverse bias',
+      ],
+      correctIndex: 1,
+      explanation: 'A Zener diode maintains a nearly constant terminal voltage (V_Z) across a wide range of reverse currents when operated in its reverse breakdown region, making it ideal for voltage regulation.',
+      difficulty: 'Core Concept',
+      subtopic: 'Zener Diodes',
+    },
+    {
+      question: 'What is the theoretical input impedance of an ideal operational amplifier?',
+      options: [
+        'Zero ohms',
+        '50 ohms',
+        '1 kΩ',
+        'Infinite ohms (∞)',
+      ],
+      correctIndex: 3,
+      explanation: 'An ideal op-amp has infinite input impedance (R_in → ∞), which means it draws zero input bias current from the signal source (I+ = I- = 0).',
+      difficulty: 'Beginner',
+      subtopic: 'Operational Amplifiers',
+    },
+    {
+      question: 'Which logic gate produces a HIGH output (1) if and only if its two inputs are different?',
+      options: [
+        'AND gate',
+        'OR gate',
+        'XOR (Exclusive OR) gate',
+        'NAND gate',
+      ],
+      correctIndex: 2,
+      explanation: 'The XOR gate outputs 1 when input states differ (0 and 1, or 1 and 0), and outputs 0 when inputs are identical (0 and 0, or 1 and 1).',
+      difficulty: 'Beginner',
+      subtopic: 'Digital Logic Gates',
+    },
+    {
+      question: 'Why does silicon have superior thermal stability compared to germanium in semiconductor applications?',
+      options: [
+        'Silicon has a larger energy bandgap (~1.12 eV vs ~0.67 eV), resulting in far smaller reverse saturation leakage current at elevated temperatures',
+        'Silicon has higher electrical conductivity at room temperature',
+        'Germanium dissolves in air above 25°C',
+        'Silicon is cheaper to extract from sand',
+      ],
+      correctIndex: 0,
+      explanation: 'The larger bandgap of silicon (1.12 eV) keeps intrinsic carrier concentration and reverse leakage current (I_S) orders of magnitude smaller than germanium, allowing stable operation up to ~150°C.',
+      difficulty: 'Exam Level',
+      subtopic: 'Semiconductor Physics',
+    },
+    {
+      question: 'What physical process is responsible for light emission in a Light Emitting Diode (LED)?',
+      options: [
+        'Thermal incandescence of the silicon filament',
+        'Radiative recombination of injected electrons and holes across the bandgap in direct bandgap semiconductors',
+        'Nuclear magnetic resonance of dopant atoms',
+        'Frictional heating caused by electron drift',
+      ],
+      correctIndex: 1,
+      explanation: 'When an LED is forward-biased, minority carriers recombine with majority carriers across the junction. In direct-bandgap materials (like GaAs), this excess energy is released as photons of light: E = hf.',
+      difficulty: 'Core Concept',
+      subtopic: 'Optoelectronics',
+    },
   ],
   'C Programming': [
     {
@@ -108,6 +199,97 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
       explanation: 'Both 5 and 2 are integer literals in C. Integer division truncates the fractional portion toward zero, yielding 2 (not 2.5). To get 2.5, at least one operand must be a float (e.g., 5.0 / 2).',
       difficulty: 'Beginner',
       subtopic: 'Operators & Types',
+    },
+    {
+      question: 'What is the size of a pointer variable (such as int* or char*) on a standard 64-bit operating system?',
+      options: [
+        '1 byte',
+        '4 bytes',
+        '8 bytes',
+        'Depends on the data type it points to',
+      ],
+      correctIndex: 2,
+      explanation: 'All pointer types on a 64-bit architecture store a 64-bit memory address, so sizeof(any_pointer) is always 8 bytes, regardless of whether it points to char (1 byte) or double (8 bytes).',
+      difficulty: 'Core Concept',
+      subtopic: 'Pointers & Memory Architecture',
+    },
+    {
+      question: 'In C, what is the mandatory character that terminates every standard string in memory?',
+      options: [
+        'Newline character (\'\\n\')',
+        'Null character (\'\\0\') with ASCII code 0',
+        'Carriage return (\'\\r\')',
+        'Space character (\' \')',
+      ],
+      correctIndex: 1,
+      explanation: 'C strings are contiguous arrays of characters terminated by the null character \'\\0\'. Functions like strlen() and printf("%s") scan until encountering this null sentinel.',
+      difficulty: 'Beginner',
+      subtopic: 'Strings & Arrays',
+    },
+    {
+      question: 'What is the difference between accessing a structure member via the dot operator (.) versus the arrow operator (->)?',
+      options: [
+        '. is used for structure variables, while -> is used when accessing members through a pointer to a structure',
+        '. is for public members, -> is for private members',
+        '-> is used only in C++, never in C',
+        '. allocates heap memory, while -> frees stack memory',
+      ],
+      correctIndex: 0,
+      explanation: 'ptr->member is syntactic sugar for (*ptr).member. The dot operator works on structure objects directly, while the arrow operator dereferences a structure pointer first.',
+      difficulty: 'Core Concept',
+      subtopic: 'Structures & Unions',
+    },
+    {
+      question: 'What is a "dangling pointer" in C?',
+      options: [
+        'A pointer declared as static',
+        'A pointer that points to a deallocated/freed memory location',
+        'A pointer that has never been assigned any value',
+        'A pointer stored in an array of function pointers',
+      ],
+      correctIndex: 1,
+      explanation: 'A dangling pointer points to memory that has already been released (e.g. after free(ptr) or returning the address of a local stack variable). Dereferencing it yields undefined behavior.',
+      difficulty: 'Exam Level',
+      subtopic: 'Pointers & Memory Safety',
+    },
+    {
+      question: 'What is the primary condition required to prevent infinite recursion and a stack overflow in a recursive C function?',
+      options: [
+        'Using at least one while loop inside the function',
+        'A clearly defined base case that terminates recursion without further self-calls',
+        'Declaring the function with the volatile keyword',
+        'Allocating recursive parameters using malloc()',
+      ],
+      correctIndex: 1,
+      explanation: 'Every recursive function must contain a base condition that stops subsequent recursive invocations; otherwise, stack frames accumulate until call stack memory is exhausted (Stack Overflow).',
+      difficulty: 'Core Concept',
+      subtopic: 'Recursion & Call Stack',
+    },
+    {
+      question: 'If "int arr[5] = {10, 20, 30, 40, 50};", what does *(arr + 3) evaluate to?',
+      options: [
+        '10',
+        '30',
+        '40',
+        'The memory address of arr[3]',
+      ],
+      correctIndex: 2,
+      explanation: 'In C, array name decays to a pointer to its first element. By pointer arithmetic, *(arr + i) is completely identical to arr[i]. Thus *(arr + 3) accesses index 3, which is 40.',
+      difficulty: 'Core Concept',
+      subtopic: 'Arrays & Pointer Arithmetic',
+    },
+    {
+      question: 'What is the difference between malloc() and calloc() for dynamic memory allocation in C?',
+      options: [
+        'malloc() is faster and initializes memory to zero; calloc() leaves memory uninitialized',
+        'calloc() initializes all allocated bytes to zero; malloc() leaves memory uninitialized (garbage values)',
+        'calloc() allocates stack memory; malloc() allocates heap memory',
+        'malloc() takes two arguments; calloc() takes only one argument',
+      ],
+      correctIndex: 1,
+      explanation: 'calloc(n, size) initializes every byte to 0 and checks for multiplication overflow, whereas malloc(total_bytes) allocates uninitialized raw memory leaving whatever garbage values were previously there.',
+      difficulty: 'Core Concept',
+      subtopic: 'Dynamic Memory Allocation',
     },
   ],
   'Engineering Mathematics': [
@@ -150,6 +332,97 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
       difficulty: 'Exam Level',
       subtopic: 'Eigenvalues & Vectors',
     },
+    {
+      question: 'What is the Laplace transform of the unit step function u(t)?',
+      options: [
+        '1',
+        '1 / s',
+        's',
+        '1 / s²',
+      ],
+      correctIndex: 1,
+      explanation: 'L{u(t)} = ∫[0 to ∞] 1 * e^(-st) dt = [-e^(-st) / s] from 0 to ∞ = 0 - (-1/s) = 1/s for s > 0.',
+      difficulty: 'Beginner',
+      subtopic: 'Laplace Transforms',
+    },
+    {
+      question: 'For two non-zero vectors u and v, what condition guarantees that they are mutually orthogonal (perpendicular)?',
+      options: [
+        'Their dot product (scalar product) is zero: u · v = 0',
+        'Their cross product is zero',
+        'Their magnitudes are equal',
+        'Their sum is zero',
+      ],
+      correctIndex: 0,
+      explanation: 'Because u · v = |u||v| cos(θ), two non-zero vectors are perpendicular if and only if cos(θ) = 0, which means u · v = 0.',
+      difficulty: 'Beginner',
+      subtopic: 'Vector Calculus & Linear Algebra',
+    },
+    {
+      question: 'What is the rank of a matrix defined as in linear algebra?',
+      options: [
+        'The total number of non-zero entries in the matrix',
+        'The maximum number of linearly independent row (or column) vectors in the matrix',
+        'The sum of the diagonal entries',
+        'The determinant multiplied by the dimension',
+      ],
+      correctIndex: 1,
+      explanation: 'The rank of a matrix is the dimension of the vector space spanned by its rows (or columns), equal to the number of non-zero rows in its row-echelon form.',
+      difficulty: 'Core Concept',
+      subtopic: 'Matrix Rank & Systems of Equations',
+    },
+    {
+      question: 'What is the order and degree of the differential equation: (d²y/dx²)³ + (dy/dx)⁴ + y = 0 ?',
+      options: [
+        'Order 2, Degree 3',
+        'Order 3, Degree 2',
+        'Order 4, Degree 2',
+        'Order 2, Degree 4',
+      ],
+      correctIndex: 0,
+      explanation: 'Order is the highest derivative present (d²y/dx², which is 2). Degree is the power of that highest derivative once freed of radicals/fractions, which is 3.',
+      difficulty: 'Core Concept',
+      subtopic: 'Differential Equations',
+    },
+    {
+      question: 'What is the integrating factor (I.F.) for the first-order linear differential equation: dy/dx + P(x)y = Q(x)?',
+      options: [
+        'e^(∫ P(x) dx)',
+        '∫ P(x) dx',
+        'e^(P(x))',
+        'Q(x) / P(x)',
+      ],
+      correctIndex: 0,
+      explanation: 'Multiplying both sides by e^(∫ P(x) dx) turns the left-hand side into the exact derivative d/dx [y * e^(∫ P(x) dx)], enabling direct integration.',
+      difficulty: 'Exam Level',
+      subtopic: 'Differential Equations',
+    },
+    {
+      question: 'In vector calculus, what is the divergence of the curl of any twice continuously differentiable vector field F: ∇ · (∇ × F)?',
+      options: [
+        'Always zero (0)',
+        'Equal to ∇²F',
+        'Equal to the gradient of the scalar potential',
+        'Infinite',
+      ],
+      correctIndex: 0,
+      explanation: 'The divergence of a curl is identically zero for any smooth vector field: div(curl F) = 0. This is a fundamental identity representing conservation of circulation.',
+      difficulty: 'Exam Level',
+      subtopic: 'Vector Calculus',
+    },
+    {
+      question: 'If a square matrix A has a determinant of zero (det(A) = 0), what does this imply about the matrix?',
+      options: [
+        'The matrix is singular and does not possess an inverse (A⁻¹ does not exist)',
+        'The matrix has all zero elements',
+        'All eigenvalues of A are equal to 1',
+        'A is an identity matrix',
+      ],
+      correctIndex: 0,
+      explanation: 'A matrix with det(A) = 0 is non-invertible (singular). Because A⁻¹ = (1/det(A)) * adj(A), division by zero makes the inverse undefined.',
+      difficulty: 'Beginner',
+      subtopic: 'Matrices & Linear Algebra',
+    },
   ],
   'General Engineering': [
     {
@@ -190,6 +463,97 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
       explanation: 'Toughness is the ability of a material to absorb energy and plastically deform without fracturing, represented by the total area under the complete stress-strain curve.',
       difficulty: 'Exam Level',
       subtopic: 'Strength of Materials',
+    },
+    {
+      question: 'What is the First Law of Thermodynamics fundamentally an expression of?',
+      options: [
+        'The conservation of electric charge',
+        'The law of conservation of energy (ΔU = Q - W)',
+        'The increase of universal entropy',
+        'Newton\'s third law of action-reaction',
+      ],
+      correctIndex: 1,
+      explanation: 'The First Law states that energy cannot be created or destroyed, only transferred as heat (Q) or converted into mechanical work (W), resulting in a change in internal energy: ΔU = Q - W.',
+      difficulty: 'Beginner',
+      subtopic: 'Basic Thermodynamics',
+    },
+    {
+      question: 'What are the reaction forces provided by a frictionless roller support in a 2D beam analysis?',
+      options: [
+        'A single reaction force perpendicular (normal) to the supporting surface',
+        'Two perpendicular forces and a moment',
+        'A moment only',
+        'Forces in both horizontal and vertical directions without any normal constraint',
+      ],
+      correctIndex: 0,
+      explanation: 'A roller support allows free horizontal motion and rotation, constraining movement solely in the normal direction. Hence, it exerts only one reaction force perpendicular to the surface.',
+      difficulty: 'Beginner',
+      subtopic: 'Engineering Mechanics',
+    },
+    {
+      question: 'In Hooke\'s Law for linear elastic materials (σ = E · ε), what does E represent?',
+      options: [
+        'Poisson\'s ratio',
+        'Modulus of Elasticity (Young\'s Modulus)',
+        'Ultimate tensile strength',
+        'Yield stress point',
+      ],
+      correctIndex: 1,
+      explanation: 'Young\'s Modulus E is the constant of proportionality between normal stress σ and normal strain ε in the linear elastic regime of the material.',
+      difficulty: 'Beginner',
+      subtopic: 'Strength of Materials',
+    },
+    {
+      question: 'What is the RMS (Root Mean Square) value of a sinusoidal AC voltage with peak voltage V_peak?',
+      options: [
+        'V_peak / 2',
+        'V_peak / √2 ≈ 0.707 V_peak',
+        '2 * V_peak / π',
+        '√3 * V_peak',
+      ],
+      correctIndex: 1,
+      explanation: 'The RMS value of a pure sine wave produces the same heating effect as an equivalent DC voltage, given by V_rms = V_peak / √2 ≈ 0.707 V_peak.',
+      difficulty: 'Core Concept',
+      subtopic: 'Basic Electrical Engineering',
+    },
+    {
+      question: 'What condition defines resonance in a series RLC AC circuit?',
+      options: [
+        'Inductive reactance equals capacitive reactance: X_L = X_C',
+        'Resistance equals zero: R = 0',
+        'Current lags voltage by 90°',
+        'Power factor is zero',
+      ],
+      correctIndex: 0,
+      explanation: 'At resonance, inductive reactance X_L (ωL) exactly cancels capacitive reactance X_C (1/ωC). Circuit impedance is purely resistive (Z = R) and current reaches its maximum peak.',
+      difficulty: 'Core Concept',
+      subtopic: 'AC Circuit Analysis',
+    },
+    {
+      question: 'What is the maximum theoretical thermal efficiency of a Carnot heat engine operating between hot reservoir T_H and cold reservoir T_C (temperatures in Kelvin)?',
+      options: [
+        'η = 1 - (T_C / T_H)',
+        'η = T_H / T_C',
+        'η = 100%',
+        'η = (T_H - T_C) / T_C',
+      ],
+      correctIndex: 0,
+      explanation: 'The Carnot cycle sets the maximum upper bound on heat engine efficiency: η_carnot = 1 - (T_cold / T_hot), where temperatures must be in absolute Kelvin.',
+      difficulty: 'Exam Level',
+      subtopic: 'Basic Thermodynamics',
+    },
+    {
+      question: 'What does the parallel axis theorem allow engineers to calculate for an area or structural cross-section?',
+      options: [
+        'The moment of inertia about an axis parallel to a centroidal axis: I = I_G + A·d²',
+        'The center of gravity under dynamic impact',
+        'The torsional shear stress in non-circular shafts',
+        'The electrical resistance of parallel copper wires',
+      ],
+      correctIndex: 0,
+      explanation: 'The parallel axis theorem states: I_axis = I_centroid + A * d², where d is the perpendicular distance between the two parallel axes and A is the cross-sectional area.',
+      difficulty: 'Exam Level',
+      subtopic: 'Engineering Mechanics',
     },
   ],
 };
@@ -486,14 +850,19 @@ Please provide a beginner-friendly explanation with intuitive examples and pract
   return res.json({ answer: fallbackAnswer });
 });
 
-// Generate 3 Quiz Questions endpoint
+// Generate Quiz Questions endpoint with count and difficulty options
 app.post('/api/quiz', async (req, res) => {
-  const { subject, topic } = req.body;
+  const { subject, topic, difficulty, count } = req.body;
   const selectedSubject = subject || 'Basic Electronics';
-  const topicContext = topic && topic.trim() ? `focusing on topic: "${topic.trim()}"` : 'covering essential 1st-year foundational concepts';
+  const numQuestions = Math.min(Math.max(Number(count) || 3, 1), 10);
+  const selectedDifficulty = difficulty && typeof difficulty === 'string' && difficulty !== 'All' ? difficulty : undefined;
 
-  const prompt = `Generate exactly 3 high-quality, conceptual, multiple-choice quiz questions for a first-year engineering student in the subject: "${selectedSubject}", ${topicContext}.
-Ensure each question tests understanding rather than mere memorization.
+  const topicContext = topic && topic.trim() ? `focusing on topic: "${topic.trim()}"` : 'covering essential 1st-year foundational concepts';
+  const difficultyPrompt = selectedDifficulty ? `Target difficulty level: ${selectedDifficulty}.` : 'Include a balanced variety of Beginner, Core Concept, and Exam Level questions.';
+
+  const prompt = `Generate exactly ${numQuestions} high-quality, conceptual, multiple-choice quiz questions for a first-year engineering student in the subject: "${selectedSubject}", ${topicContext}.
+${difficultyPrompt}
+Ensure each question tests true understanding rather than mere memorization.
 The 4 options should be realistic and educational, with exactly one indisputably correct answer.`;
 
   if (process.env.GEMINI_API_KEY) {
@@ -503,7 +872,7 @@ The 4 options should be realistic and educational, with exactly one indisputably
           model,
           contents: prompt,
           config: {
-            systemInstruction: `You are an examination specialist for 1st-year engineering students. Return exactly 3 questions formatted strictly to the JSON schema. Each question must have 4 options, a 0-based correctIndex, a comprehensive explanation that clarifies the right answer and why common distractors are incorrect, and a difficulty label ('Beginner', 'Core Concept', 'Exam Level').`,
+            systemInstruction: `You are an examination specialist for 1st-year engineering students. Return exactly ${numQuestions} questions formatted strictly to the JSON schema. Each question must have 4 options, a 0-based correctIndex, a comprehensive explanation that clarifies the right answer and why common distractors are incorrect, and a difficulty label ('Beginner', 'Core Concept', 'Exam Level').`,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.ARRAY,
@@ -547,7 +916,7 @@ The 4 options should be realistic and educational, with exactly one indisputably
       const quiz = JSON.parse(jsonText);
 
       if (Array.isArray(quiz) && quiz.length > 0) {
-        return res.json({ quiz });
+        return res.json({ quiz: quiz.slice(0, numQuestions) });
       }
     } catch (err: any) {
       console.warn('Quiz generation fallback triggered:', err?.message);
@@ -555,8 +924,22 @@ The 4 options should be realistic and educational, with exactly one indisputably
   }
 
   // Guaranteed fallback quiz for the selected subject
-  const fallback = FALLBACK_QUIZZES[selectedSubject] || FALLBACK_QUIZZES['Basic Electronics'];
-  return res.json({ quiz: fallback });
+  const subjectBank = FALLBACK_QUIZZES[selectedSubject] || FALLBACK_QUIZZES['Basic Electronics'];
+  let pool = subjectBank;
+  if (selectedDifficulty) {
+    const filtered = subjectBank.filter((q: any) => q.difficulty === selectedDifficulty);
+    if (filtered.length > 0) {
+      pool = filtered;
+    }
+  }
+
+  // Slice to requested count or cycle if needed
+  const fallbackResult: any[] = [];
+  for (let i = 0; i < numQuestions; i++) {
+    fallbackResult.push(pool[i % pool.length]);
+  }
+
+  return res.json({ quiz: fallbackResult });
 });
 
 // Configure Vite middleware in development vs static serving in production

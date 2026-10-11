@@ -17,12 +17,15 @@ export interface SubjectInfo {
   sampleQuestions: string[];
 }
 
+export type QuizDifficulty = 'Beginner' | 'Core Concept' | 'Exam Level';
+export type QuizLength = 3 | 5 | 10;
+
 export interface QuizQuestion {
   question: string;
   options: string[];
   correctIndex: number;
   explanation: string;
-  difficulty: 'Beginner' | 'Core Concept' | 'Exam Level' | string;
+  difficulty: QuizDifficulty | string;
   subtopic?: string;
 }
 
@@ -33,6 +36,46 @@ export interface StudyHistoryItem {
   subjectName: string;
   question: string;
   answer: string;
+}
+
+export interface BookmarkItem {
+  id: string;
+  timestamp: number;
+  subjectId: SubjectId;
+  subjectName: string;
+  topicTitle: string;
+  question: string;
+  explanation: string;
+}
+
+export interface QuizQuestionResult {
+  question: string;
+  subtopic?: string;
+  userAnswerIndex: number;
+  correctAnswerIndex: number;
+  isCorrect: boolean;
+  explanation: string;
+}
+
+export interface QuizAttemptRecord {
+  id: string;
+  timestamp: number;
+  subjectId: SubjectId;
+  subjectName: string;
+  topic: string;
+  difficulty: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  questionResults: QuizQuestionResult[];
+}
+
+export interface WeakTopicRecord {
+  topic: string;
+  subjectId: SubjectId;
+  subjectName: string;
+  incorrectCount: number;
+  totalAttempts: number;
+  lastAttempted: number;
 }
 
 export interface FormulaItem {

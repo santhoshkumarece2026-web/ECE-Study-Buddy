@@ -1,26 +1,84 @@
-import React, { useState } from 'react';
-import { QuizQuestion } from '../types';
-import { CheckCircle2, XCircle, RotateCcw, Sparkles, Award } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { QuizQuestion, QuizDifficulty, QuizLength, QuizQuestionResult } from '../types';
+import { CheckCircle2, XCircle, RotateCcw, Sparkles, Award, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
 interface QuizSectionProps {
   questions: QuizQuestion[];
   subjectName: string;
-  onGenerateNew: () => void;
+  topicName?: string;
+  selectedDifficulty: QuizDifficulty;
+  selectedLength: QuizLength;
+  onChangeDifficulty: (difficulty: QuizDifficulty) => void;
+  onChangeLength: (length: QuizLength) => void;
+  onGenerateNew: (difficulty?: QuizDifficulty, count?: QuizLength) => void;
   isGeneratingNew: boolean;
+  onRecordAttempt?: (data: {
+    totalQuestions: number;
+    correctAnswers: number;
+    difficulty: string;
+    questionResults: QuizQuestionResult[];
+  }) => void;
 }
 
 export const QuizSection: React.FC<QuizSectionProps> = ({
   questions,
   subjectName,
+  topicName,
+  selectedDifficulty,
+  selectedLength,
+  onChangeDifficulty,
+  onChangeLength,
   onGenerateNew,
   isGeneratingNew,
+  onRecordAttempt,
 }) => {
+  // Questions currently being presented (either the full set or retry subset)
+  const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(questions);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [qIndex: number]: number }>({});
   const [showAllExplanations, setShowAllExplanations] = useState(false);
+  const [isRetryMode, setIsRetryMode] = useState(false);
+  const [hasRecordedCurrentAttempt, setHasRecordedCurrentAttempt] = useState(false);
+
+  // Sync when parent provides brand new questions
+  useEffect(() => {
+    setActiveQuestions(questions);
+    setSelectedAnswers({});
+    setShowAllExplanations(false);
+    setIsRetryMode(false);
+    setHasRecordedCurrentAttempt(false);
+  }, [questions]);
 
   const handleSelectOption = (qIndex: number, optionIndex: number) => {
     if (selectedAnswers[qIndex] !== undefined) return;
-    setSelectedAnswers(prev => ({ ...prev, [qIndex]: optionIndex }));
+    const nextAnswers = { ...selectedAnswers, [qIndex]: optionIndex };
+    setSelectedAnswers(nextAnswers);
+
+    // If all questions are now answered, record attempt for progress analytics
+    if (Object.keys(nextAnswers).length === activeQuestions.length && !hasRecordedCurrentAttempt && !isRetryMode) {
+      setHasRecordedCurrentAttempt(true);
+      if (onRecordAttempt) {
+        const questionResults: QuizQuestionResult[] = activeQuestions.map((q, idx) => {
+          const userIdx = nextAnswers[idx];
+          return {
+            question: q.question,
+            subtopic: q.subtopic || topicName,
+            userAnswerIndex: userIdx,
+            correctAnswerIndex: q.correctIndex,
+            isCorrect: userIdx === q.correctIndex,
+            explanation: q.explanation,
+          };
+        });
+
+        const correctCount = questionResults.filter((r) => r.isCorrect).length;
+
+        onRecordAttempt({
+          totalQuestions: activeQuestions.length,
+          correctAnswers: correctCount,
+          difficulty: selectedDifficulty,
+          questionResults,
+        });
+      }
+    }
   };
 
   const handleReset = () => {
@@ -29,54 +87,149 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
   };
 
   const totalAnswered = Object.keys(selectedAnswers).length;
-  const correctCount = questions.reduce((acc, q, idx) => {
+  const correctCount = activeQuestions.reduce((acc, q, idx) => {
     return acc + (selectedAnswers[idx] === q.correctIndex ? 1 : 0);
   }, 0);
+  const incorrectCount = totalAnswered - correctCount;
+
+  // Retry only incorrect questions
+  const handleStartRetryIncorrect = () => {
+    const missed = activeQuestions.filter((q, idx) => {
+      const ans = selectedAnswers[idx];
+      return ans !== undefined && ans !== q.correctIndex;
+    });
+
+    if (missed.length > 0) {
+      setActiveQuestions(missed);
+      setSelectedAnswers({});
+      setShowAllExplanations(false);
+      setIsRetryMode(true);
+    }
+  };
+
+  const handleExitRetry = () => {
+    setActiveQuestions(questions);
+    setSelectedAnswers({});
+    setShowAllExplanations(false);
+    setIsRetryMode(false);
+  };
 
   const optionLetters = ['A', 'B', 'C', 'D'];
 
   return (
     <div className="space-y-5">
-      {/* Quiz Top Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
-            3-Question Concept Check
-          </h3>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            <span>{subjectName}</span>
-            <span aria-hidden="true">·</span>
-            <span>Instant Feedback</span>
-            <span aria-hidden="true">·</span>
-            <span className="tabular-nums font-medium">{totalAnswered} of {questions.length} completed</span>
+      {/* Quiz Top Action & Controls Bar */}
+      <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
+                {isRetryMode ? 'Retry Missed Questions' : 'Concept Check Quiz'}
+              </h3>
+              {isRetryMode && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                  Targeted Revision
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <span>{subjectName}</span>
+              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
+              <span>{selectedDifficulty}</span>
+              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
+              <span className="tabular-nums font-medium">{totalAnswered} of {activeQuestions.length} completed</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {isRetryMode ? (
+              <button
+                onClick={handleExitRetry}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              >
+                Back to Full Quiz
+              </button>
+            ) : totalAnswered > 0 ? (
+              <button
+                onClick={handleReset}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            ) : null}
+
+            <button
+              onClick={() => onGenerateNew(selectedDifficulty, selectedLength)}
+              disabled={isGeneratingNew}
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              {isGeneratingNew ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>New {selectedLength} Questions</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {totalAnswered > 0 && (
-            <button
-              onClick={handleReset}
-              className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </button>
-          )}
+        {/* Quiz Parameter Selectors: Difficulty & Length */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          {/* Difficulty Segmented Buttons */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 font-medium flex items-center gap-1">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Difficulty:</span>
+            </span>
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+              {(['Beginner', 'Core Concept', 'Exam Level'] as QuizDifficulty[]).map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => onChangeDifficulty(diff)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    selectedDifficulty === diff
+                      ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {diff}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <button
-            onClick={onGenerateNew}
-            disabled={isGeneratingNew}
-            className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isGeneratingNew ? 'Generating...' : 'New 3 Questions'}</span>
-          </button>
+          {/* Length Segmented Buttons */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 font-medium">Questions:</span>
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+              {([3, 5, 10] as QuizLength[]).map((len) => (
+                <button
+                  key={len}
+                  onClick={() => onChangeLength(len)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer tabular-nums ${
+                    selectedLength === len
+                      ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {len} Qs
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Questions Stack */}
       <div className="space-y-4">
-        {questions.map((q, qIndex) => {
+        {activeQuestions.map((q, qIndex) => {
           const userAnswer = selectedAnswers[qIndex];
           const hasAnswered = userAnswer !== undefined;
           const isCorrect = hasAnswered && userAnswer === q.correctIndex;
@@ -86,16 +239,16 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
               key={qIndex}
               className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs transition-colors"
             >
-              {/* Question Metadata Line (Zero-Pill Discipline) */}
+              {/* Question Metadata Line (Clean unboxed text, no mangled characters) */}
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2.5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-slate-900 dark:text-slate-200 tabular-nums">
-                    Question 0{qIndex + 1}
+                    Question {qIndex + 1 < 10 ? `0${qIndex + 1}` : qIndex + 1}
                   </span>
                   {q.subtopic && (
                     <>
-                      <span aria-hidden="true">·</span>
-                      <span>{q.subtopic}</span>
+                      <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-1">/</span>
+                      <span className="text-slate-600 dark:text-slate-300">{q.subtopic}</span>
                     </>
                   )}
                 </div>
@@ -189,29 +342,29 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
         })}
       </div>
 
-      {/* Progress & Score Strip */}
+      {/* Progress, Score & Retry Strip */}
       {totalAnswered > 0 && (
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+            <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
               <Award className="w-5 h-5" />
             </div>
             <div>
               <div className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">
-                Score: {correctCount} / {questions.length} ({Math.round((correctCount / questions.length) * 100)}%)
+                Score: {correctCount} / {activeQuestions.length} ({Math.round((correctCount / activeQuestions.length) * 100)}%)
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
-                {correctCount === questions.length
-                  ? 'Excellent! You have solid mastery of these concepts.'
-                  : totalAnswered === questions.length
-                  ? 'Good practice! Review the explanations above to reinforce weak spots.'
-                  : `${questions.length - totalAnswered} question remaining.`}
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {correctCount === activeQuestions.length
+                  ? 'Outstanding! Complete mastery of all concepts in this question set.'
+                  : totalAnswered === activeQuestions.length
+                  ? `Completed with ${incorrectCount} question${incorrectCount === 1 ? '' : 's'} missed. Use the retry button to master them.`
+                  : `${activeQuestions.length - totalAnswered} question${activeQuestions.length - totalAnswered === 1 ? '' : 's'} remaining.`}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {!showAllExplanations && totalAnswered < questions.length && (
+          <div className="flex flex-wrap items-center gap-2">
+            {!showAllExplanations && totalAnswered < activeQuestions.length && (
               <button
                 onClick={() => setShowAllExplanations(true)}
                 className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
@@ -219,12 +372,24 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
                 Reveal Explanations
               </button>
             )}
+
+            {/* Retry Incorrect Questions Button */}
+            {totalAnswered === activeQuestions.length && incorrectCount > 0 && !isRetryMode && (
+              <button
+                onClick={handleStartRetryIncorrect}
+                className="px-3.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 dark:hover:bg-amber-900 border border-amber-300 dark:border-amber-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Retry Incorrect ({incorrectCount})</span>
+              </button>
+            )}
+
             <button
-              onClick={onGenerateNew}
+              onClick={() => onGenerateNew(selectedDifficulty, selectedLength)}
               disabled={isGeneratingNew}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shadow-xs"
             >
-              New 3 Questions
+              New Quiz ({selectedLength})
             </button>
           </div>
         </div>
