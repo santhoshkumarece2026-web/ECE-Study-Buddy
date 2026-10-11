@@ -18,7 +18,8 @@ import {
   ArrowRight,
   HelpCircle,
   Lightbulb,
-  ShieldAlert
+  ShieldAlert,
+  X
 } from 'lucide-react';
 
 export default function App() {
@@ -34,6 +35,9 @@ export default function App() {
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState<boolean>(false);
   const [quizError, setQuizError] = useState<string | null>(null);
+
+  // Subject Switch Notification State
+  const [switchNotice, setSwitchNotice] = useState<string | null>(null);
 
   // View state: 'explanation' or 'quiz'
   const [activeView, setActiveView] = useState<'explanation' | 'quiz'>('explanation');
@@ -78,7 +82,39 @@ export default function App() {
     }
   }, [history]);
 
+  // Auto-dismiss subject switch notification after 4.5 seconds
+  useEffect(() => {
+    if (!switchNotice) return;
+    const timer = setTimeout(() => {
+      setSwitchNotice(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [switchNotice]);
+
   const activeSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
+
+  // Switch subject handler with clean session reset
+  const handleSelectSubject = (id: SubjectId) => {
+    // Requirement 8: Do not clear the conversation when selecting the already active subject
+    if (id === selectedSubjectId) {
+      return;
+    }
+
+    const nextSubject = SUBJECTS.find(s => s.id === id);
+    const targetName = nextSubject ? nextSubject.name : id;
+
+    // Requirement 1, 2, 3 & 6: Detect change, clear current conversation & start fresh
+    setSelectedSubjectId(id);
+    setQuestion('');
+    setExplanation(null);
+    setQuizQuestions(null);
+    setAskError(null);
+    setQuizError(null);
+    setActiveView('explanation');
+
+    // Requirement 7: Show small message such as "Switched to C Programming. Started a new conversation."
+    setSwitchNotice(`Switched to ${targetName}. Started a new conversation.`);
+  };
 
   // Handle Ask AI
   const handleAskAI = async () => {
@@ -87,16 +123,18 @@ export default function App() {
       return;
     }
 
+    setSwitchNotice(null);
     setIsAskingAI(true);
     setAskError(null);
     setActiveView('explanation');
 
     try {
+      const currentSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
       const response = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: activeSubject.name,
+          subject: currentSubject.name,
           question: question.trim(),
         }),
       });
@@ -113,15 +151,14 @@ export default function App() {
         id: Date.now().toString(),
         timestamp: Date.now(),
         subjectId: selectedSubjectId,
-        subjectName: activeSubject.name,
+        subjectName: currentSubject.name,
         question: question.trim(),
         answer: data.answer,
       };
 
       setHistory(prev => [newItem, ...prev.slice(0, 29)]);
     } catch (err: any) {
-      console.error(err);
-      setAskError(err?.message || 'Network error occurred. Please check your connection and try again.');
+      setAskError(err?.message || 'Unable to load explanation. Please check your connection and try again.');
     } finally {
       setIsAskingAI(false);
     }
@@ -129,16 +166,18 @@ export default function App() {
 
   // Handle Generate 3 Quiz Questions
   const handleGenerateQuiz = async () => {
+    setSwitchNotice(null);
     setIsGeneratingQuiz(true);
     setQuizError(null);
     setActiveView('quiz');
 
     try {
+      const currentSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: activeSubject.name,
+          subject: currentSubject.name,
           topic: question.trim() || undefined,
         }),
       });
@@ -151,7 +190,6 @@ export default function App() {
 
       setQuizQuestions(data.quiz);
     } catch (err: any) {
-      console.error(err);
       setQuizError(err?.message || 'Could not generate quiz right now. Please try again.');
     } finally {
       setIsGeneratingQuiz(false);
@@ -161,6 +199,7 @@ export default function App() {
   const handleSelectSampleQuestion = (sample: string) => {
     setQuestion(sample);
     setAskError(null);
+    setSwitchNotice(null);
   };
 
   const handleCopyExplanation = () => {
@@ -234,16 +273,33 @@ export default function App() {
 
               <SubjectTabs
                 selectedSubjectId={selectedSubjectId}
-                onSelectSubject={(id) => {
-                  setSelectedSubjectId(id);
-                  setAskError(null);
-                }}
+                onSelectSubject={handleSelectSubject}
                 onSelectTopic={(topic) => {
                   setQuestion(`Explain ${topic} with an intuitive analogy, core formulas, and a beginner-friendly example.`);
                   setAskError(null);
+                  setSwitchNotice(null);
                 }}
               />
             </div>
+
+            {/* Subject Switch Notification Banner */}
+            {switchNotice && (
+              <div className="p-3 rounded-xl bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800/80 text-blue-900 dark:text-blue-200 text-xs flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="font-medium">{switchNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSwitchNotice(null)}
+                  className="p-1 rounded-md text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer"
+                  title="Dismiss notification"
+                  aria-label="Dismiss notification"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Question Studio Input Card */}
             <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
