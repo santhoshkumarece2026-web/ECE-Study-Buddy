@@ -1,0 +1,7 @@
+{
+  "name": "ECE Study Buddy",
+  "description": "Interactive AI study buddy for first-year engineering students covering Basic Electronics, C Programming, Engineering Mathematics, and General Engineering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
