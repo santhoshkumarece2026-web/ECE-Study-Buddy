@@ -14,7 +14,8 @@ const app = express();
 const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Initialize Gemini SDK with User-Agent telemetry
 const ai = new GoogleGenAI({
@@ -25,6 +26,9 @@ const ai = new GoogleGenAI({
     },
   },
 });
+
+// Primary model initialization
+const MODEL_NAME = 'gemini-3.8-flash';
 
 // Curated fallback quizzes for high-demand spikes
 const FALLBACK_QUIZZES: Record<string, any[]> = {
@@ -558,33 +562,29 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
   ],
 };
 
-// Multi-model failover candidates in order of preference
-const MODEL_CANDIDATES = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+// Multi-model failover candidates in order of preference, initialized with gemini-3.8-flash
+const MODEL_CANDIDATES = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro', 'gemini-flash-latest'];
+const ALLOWED_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-pro'];
 
 async function generateWithModelFallback(
-  makeCall: (model: string) => Promise<any>
+  makeCall: (model: string) => Promise<any>,
+  preferredModel: string = 'gemini-3.8-flash'
 ): Promise<any> {
+  const chosenModel = ALLOWED_MODELS.includes(preferredModel) ? preferredModel : 'gemini-3.8-flash';
+  // Try preferred model first, then remaining candidates
+  const candidates = [
+    chosenModel,
+    ...MODEL_CANDIDATES.filter((m) => m !== chosenModel),
+  ];
+
   let lastError: any = null;
-  for (const model of MODEL_CANDIDATES) {
+  for (const model of candidates) {
     try {
       return await makeCall(model);
     } catch (err: any) {
       lastError = err;
-      const msg = err?.message || '';
-      const isQuotaOrOverload =
-        msg.includes('429') ||
-        msg.includes('RESOURCE_EXHAUSTED') ||
-        msg.includes('Quota exceeded') ||
-        msg.includes('quota') ||
-        msg.includes('503') ||
-        msg.includes('UNAVAILABLE') ||
-        msg.includes('high demand');
-
-      if (isQuotaOrOverload) {
-        console.warn(`Model "${model}" quota reached or unavailable. Trying next candidate...`);
-        continue;
-      }
-      throw err;
+      console.warn(`Model "${model}" failed or unavailable (${err?.message || 'error'}). Trying next candidate...`);
+      continue;
     }
   }
   throw lastError;
@@ -593,82 +593,82 @@ async function generateWithModelFallback(
 // Curated high-yield syllabus explanations when all external API quotas are exhausted
 const CURATED_EXPLANATIONS: Record<string, Record<string, string>> = {
   'Basic Electronics': {
-    diode: `## 🎯 Quick Conceptual Summary
+    diode: `**QUICK CONCEPTUAL SUMMARY:**
 A **PN junction diode** is a semiconductor component that allows electrical current to pass easily in one direction (forward bias) while practically blocking it in reverse (reverse bias).
 
-## 💡 Real-World Analogy: The One-Way Valve
-Imagine a pressurized swing check valve in a plumbing system. When water pushes forward against the flap with enough pressure ($0.7\\text{ V}$ for silicon), the valve swings open and water flows freely. When water tries to flow backward, the pressure slams the flap shut.
+**REAL-WORLD ANALOGY: The One-Way Valve**
+Imagine a pressurized swing check valve in a plumbing system. When water pushes forward against the flap with enough pressure (0.7V for silicon), the valve swings open and water flows freely. When water tries to flow backward, the pressure slams the flap shut.
 
-## 🔍 Step-by-Step Breakdown
+**STEP-BY-STEP BREAKDOWN:**
 1. **Depletion Layer**: Diffusion of electrons from N-type to P-type and holes from P-type to N-type creates a central zone devoid of mobile charge carriers, leaving fixed positive and negative ions.
-2. **Barrier Potential**: The resulting internal electric field prevents further carrier crossing ($0.7\\text{ V}$ in Silicon, $0.3\\text{ V}$ in Germanium).
-3. **Forward Bias ($V_D > 0.7\\text{ V}$)**: Connecting $+$ to Anode and $-$ to Cathode cancels the built-in barrier, producing exponential current:
-   $$I_D = I_S \\left(e^{\\frac{V_D}{\\eta V_T}} - 1\\right)$$
-   Where $V_T \\approx 26\\text{ mV}$ at room temperature.
+2. **Barrier Potential**: The resulting internal electric field prevents further carrier crossing (0.7V in Silicon, 0.3V in Germanium).
+3. **Forward Bias (V_D > 0.7V)**: Connecting + to Anode and - to Cathode cancels the built-in barrier, producing exponential current:
+   I_D = I_S * (e^(V_D / (η * V_T)) - 1)
+   Where V_T ≈ 26mV at room temperature.
 4. **Reverse Bias**: Widens the depletion zone. Only a negligible leakage current flows until the breakdown voltage is reached.
 
-## 📐 Practical Circuit Example
-In a circuit with a $5\\text{ V}$ DC source, a silicon diode, and a $1\\text{ k}\\Omega$ series resistor:
-- Diode drop: $V_D = 0.7\\text{ V}$
-- Resistor voltage: $V_R = 5.0\\text{ V} - 0.7\\text{ V} = 4.3\\text{ V}$
-- Circuit current: $I = \\frac{4.3\\text{ V}}{1000\\,\\Omega} = 4.3\\text{ mA}$
+**PRACTICAL CIRCUIT EXAMPLE:**
+In a circuit with a 5V DC source, a silicon diode, and a 1 kΩ series resistor:
+- Diode drop: V_D = 0.7V
+- Resistor voltage: V_R = 5.0V - 0.7V = 4.3V
+- Circuit current: I = 4.3V / 1000 Ω = 4.3 mA
 
-## ⚠️ Common Exam Trap & Pitfall
-- Forgetting to deduct the $0.7\\text{ V}$ forward drop when writing Kirchhoff's Voltage Law (KVL) in half-wave and full-wave rectifier calculations!`,
-    bjt: `## 🎯 Quick Conceptual Summary
-A **Bipolar Junction Transistor (BJT)** is a current-controlled semiconductor device where a small base current ($I_B$) controls a much larger collector current ($I_C = \\beta I_B$).
+**COMMON EXAM TRAP & PITFALL:**
+- Forgetting to deduct the 0.7V forward drop when writing Kirchhoff's Voltage Law (KVL) in half-wave and full-wave rectifier calculations!`,
+    bjt: `**QUICK CONCEPTUAL SUMMARY:**
+A **Bipolar Junction Transistor (BJT)** is a current-controlled semiconductor device where a small base current (I_B) controls a much larger collector current (I_C = β * I_B).
 
-## 💡 Real-World Analogy: The Hydraulic Valve
-Think of a faucet where your hand applies a gentle torque on the handle ($I_B$) to regulate high-pressure water blasting from the main supply ($I_C$) to the drain ($I_E$).
+**REAL-WORLD ANALOGY: The Hydraulic Valve**
+Think of a faucet where your hand applies a gentle torque on the handle (I_B) to regulate high-pressure water blasting from the main supply (I_C) to the drain (I_E).
 
-## 🔍 Step-by-Step Breakdown
+**STEP-BY-STEP BREAKDOWN:**
 1. **Three Terminals**: Emitter (heavily doped injector), Base (ultra-thin control channel), Collector (wide heat-dissipating collector).
 2. **Current Equations**:
-   $$I_E = I_B + I_C$$
-   $$I_C = \\beta I_B \\quad (\\text{Active Region})$$
+   I_E = I_B + I_C
+   I_C = β * I_B  (Active Region)
 3. **Operational Modes**:
-   - **Cutoff**: Both junctions reverse-biased ($I_C \\approx 0$, OFF switch).
+   - **Cutoff**: Both junctions reverse-biased (I_C ≈ 0, OFF switch).
    - **Active**: Base-Emitter forward-biased, Base-Collector reverse-biased (amplifier).
-   - **Saturation**: Both junctions forward-biased ($V_{CE} \\approx 0.2\\text{ V}$, ON switch).
+   - **Saturation**: Both junctions forward-biased (V_CE ≈ 0.2V, ON switch).
 
-## 📐 Practical Worked Example
-With base current $I_B = 40\\,\\mu\\text{A}$ and $\\beta = 120$:
-- Collector current: $I_C = 120 \\times 40\\,\\mu\\text{A} = 4.8\\text{ mA}$
-- Emitter current: $I_E = 4.8\\text{ mA} + 0.04\\text{ mA} = 4.84\\text{ mA}$
+**PRACTICAL WORKED EXAMPLE:**
+With base current I_B = 40 μA and β = 120:
+- Collector current: I_C = 120 * 40 μA = 4.8 mA
+- Emitter current: I_E = 4.8 mA + 0.04 mA = 4.84 mA
 
-## ⚠️ Common Exam Trap & Pitfall
-- Always verify if the transistor is saturated before calculating $I_C = \\beta I_B$. If $V_{CE}$ calculates to $< 0.2\\text{ V}$, the transistor is saturated and current is limited by external resistors!`,
-    laws: `## 🎯 Quick Conceptual Summary
+**COMMON EXAM TRAP & PITFALL:**
+- Always verify if the transistor is saturated before calculating I_C = β * I_B. If V_CE calculates to < 0.2V, the transistor is saturated and current is limited by external resistors!`,
+    laws: `**QUICK CONCEPTUAL SUMMARY:**
 **Kirchhoff's Current Law (KCL)** and **Voltage Law (KVL)** govern nodal and mesh circuit analysis based on conservation of charge and conservation of energy.
 
-## 💡 Real-World Analogy
+**REAL-WORLD ANALOGY:**
 - **KCL**: A water pipe T-junction. The volume of water entering must match the volume exiting.
 - **KVL**: A closed mountain loop hike. The total elevation gained climbing up equals the elevation lost climbing back down. Net altitude change is zero.
 
-## 🔍 Step-by-Step Breakdown
-1. **KCL (Conservation of Charge)**: At any node, $\\sum I_{\\text{in}} = \\sum I_{\\text{out}}$.
-2. **KVL (Conservation of Energy)**: In any closed loop, $\\sum V_{\\text{rises}} = \\sum V_{\\text{drops}}$.
+**STEP-BY-STEP BREAKDOWN:**
+1. **KCL (Conservation of Charge)**: At any node, ∑ I_in = ∑ I_out.
+2. **KVL (Conservation of Energy)**: In any closed loop, ∑ V_rises = ∑ V_drops.
 
-## 📐 Practical Worked Example
-At a node where $I_1 = 5\\text{ A}$ enters, and $I_2 = 2\\text{ A}$ leaves:
-- $I_3 = 5\\text{ A} - 2\\text{ A} = 3\\text{ A}$ leaving the node.
+**PRACTICAL WORKED EXAMPLE:**
+At a node where I_1 = 5 A enters, and I_2 = 2 A leaves:
+- I_3 = 5 A - 2 A = 3 A leaving the node.
 
-## ⚠️ Common Exam Trap & Pitfall
-- Maintain consistent signs when traversing loops in KVL! A voltage source from $-$ to $+$ is $+V$ (gain), while traversing a resistor in the direction of current is $-IR$ (drop).`,
+**COMMON EXAM TRAP & PITFALL:**
+- Maintain consistent signs when traversing loops in KVL! A voltage source from - to + is +V (gain), while traversing a resistor in the direction of current is -I*R (drop).`,
   },
   'C Programming': {
-    pointer: `## 🎯 Quick Conceptual Summary
+    pointer: `**QUICK CONCEPTUAL SUMMARY:**
 A **pointer** in C is a variable that stores the memory address of another variable rather than storing data directly.
 
-## 💡 Real-World Analogy: The Mailbox Number
+**REAL-WORLD ANALOGY: The Mailbox Number**
 An ordinary variable is like the package inside a mailbox. A pointer is the **mailbox number** written on a postcard. By reading the number, you can open that specific mailbox and inspect or modify its contents.
 
-## 🔍 Step-by-Step Breakdown
+**STEP-BY-STEP BREAKDOWN:**
 1. **Address-of Operator (\`&\`)**: Returns the numerical memory address where a variable lives.
 2. **Dereference Operator (\`*\`)**: Reads or updates the value residing at the address held by the pointer.
 3. **Pointer Arithmetic**: Adding \`1\` to an integer pointer advances the address by \`sizeof(int)\` (typically 4 bytes), not 1 byte!
 
-## 💻 Concrete Code Example
+**CONCRETE CODE EXAMPLE:**
 \`\`\`c
 #include <stdio.h>
 
@@ -687,21 +687,21 @@ int main() {
 }
 \`\`\`
 
-## ⚠️ Common Exam Trap & Pitfall
+**COMMON EXAM TRAP & PITFALL:**
 - **Uninitialized Pointers**: Writing \`int *ptr; *ptr = 5;\` dereferences random memory and crashes with a Segmentation Fault! Always initialize pointers before use (\`int *ptr = &var;\` or \`int *ptr = NULL;\`).`,
-    memory: `## 🎯 Quick Conceptual Summary
+    memory: `**QUICK CONCEPTUAL SUMMARY:**
 **Dynamic Memory Allocation** allocates memory on the system **heap** at runtime, enabling variable-sized data structures like dynamic arrays and linked lists.
 
-## 💡 Real-World Analogy: Hotel Booking
+**REAL-WORLD ANALOGY: Hotel Booking**
 Static arrays are like buying a 100-seat tour bus even if only 4 passengers show up. Dynamic memory is like booking hotel rooms on demand: you reserve 4 rooms with \`malloc()\`, stay in them, and check out with \`free()\` so memory is reclaimed.
 
-## 🔍 Step-by-Step Breakdown
+**STEP-BY-STEP BREAKDOWN:**
 1. **\`malloc(size)\`**: Allocates raw uninitialized memory block.
 2. **\`calloc(n, size)\`**: Allocates memory and sets all bytes to zero.
 3. **\`free(ptr)\`**: Releases memory back to the heap.
 4. **\`realloc(ptr, new_size)\`**: Resizes existing allocation.
 
-## 💻 Concrete Code Example
+**CONCRETE CODE EXAMPLE:**
 \`\`\`c
 #include <stdio.h>
 #include <stdlib.h>
@@ -722,52 +722,82 @@ int main() {
 }
 \`\`\`
 
-## ⚠️ Common Exam Trap & Pitfall
+**COMMON EXAM TRAP & PITFALL:**
 - **Memory Leaks**: Forgetting \`free(ptr)\` permanently wastes heap space until the program terminates!`,
   },
   'Engineering Mathematics': {
-    matrix: `## 🎯 Quick Conceptual Summary
-**Eigenvalues ($\\lambda$)** and **Eigenvectors ($X$)** represent invariant directions where a linear matrix transformation $A$ acts merely as a scalar stretch without rotating the vector:
-$$A X = \\lambda X$$
+    matrix: `**QUICK CONCEPTUAL SUMMARY:**
+**Eigenvalues (λ)** and **Eigenvectors (v)** represent invariant directions where a linear matrix transformation A acts merely as a scalar stretch without rotating the vector:
+A × v = λ × v   (∀ non-zero vectors v)
 
-## 💡 Real-World Analogy: The Stretched Canvas
+**REAL-WORLD ANALOGY: The Stretched Canvas**
 If you stretch a rubber sheet diagonally, most lines tilt and rotate to new angles. However, lines along the principal stretch axes remain perfectly straight and are only lengthened. Those special axes are the eigenvectors!
 
-## 🔍 Step-by-Step Breakdown
-1. **Characteristic Equation**: $\\det(A - \\lambda I) = 0$.
-2. **Solve for $\\lambda$**: The roots give the eigenvalues.
-3. **Find Eigenvectors**: Substitute each $\\lambda$ into $(A - \\lambda I)X = 0$.
-4. **Properties**:
-   - $\\sum \\lambda_i = \\text{Trace}(A)$
-   - $\\prod \\lambda_i = \\det(A)$
+**STEP-BY-STEP BREAKDOWN:**
+1. **Characteristic Equation**: det(A - λ × I) = 0.
+2. **Solve for λ**: The roots of the characteristic equation give the eigenvalues.
+3. **Find Eigenvectors**: Substitute each λ into (A - λ × I) × v = 0 and solve for non-zero vectors v.
+4. **Key Invariant Properties**:
+   - ∑ λᵢ = Trace(A)  (Sum of eigenvalues equals the sum of main diagonal entries)
+   - ∏ λᵢ = det(A)    (Product of eigenvalues equals the determinant)
+   - Condition: ∀ λ ∈ ℝ (or ℂ for complex eigenvalues)
 
-## 📐 Practical Worked Example
-For $A = \\begin{pmatrix} 3 & 1 \\\\ 2 & 2 \\end{pmatrix}$:
-$$\\det\\begin{pmatrix} 3-\\lambda & 1 \\\\ 2 & 2-\\lambda \\end{pmatrix} = (3-\\lambda)(2-\\lambda) - 2 = \\lambda^2 - 5\\lambda + 4 = 0$$
-Roots: $(\\lambda - 4)(\\lambda - 1) = 0 \\implies \\lambda_1 = 4, \\; \\lambda_2 = 1$.
-- Check: $\\text{Trace} = 3 + 2 = 5 = 4 + 1$. $\\det(A) = 6 - 2 = 4 = 4 \\times 1$.
+**PRACTICAL WORKED EXAMPLE:**
+Consider the 2 × 2 matrix A:
+⎡ 3   1 ⎤
+⎣ 2   2 ⎦
 
-## ⚠️ Common Exam Trap & Pitfall
-- Remember **Cayley-Hamilton Theorem**: Every square matrix satisfies its own characteristic equation! $A^2 - 5A + 4I = 0$, giving an instant formula for $A^{-1} = \\frac{1}{4}(5I - A)$.`,
+1. Set up the characteristic equation: det(A - λ × I) = 0
+det ⎡ (3 - λ)     1   ⎤ = (3 - λ) × (2 - λ) - (1 × 2) = 0
+    ⎣    2     (2 - λ) ⎦
+
+2. Expand and factor:
+(6 - 5 × λ + λ²) - 2 = 0
+λ² - 5 × λ + 4 = 0
+(λ - 4) × (λ - 1) = 0  =>  λ₁ = 4,  λ₂ = 1
+
+3. Find eigenvector for λ₁ = 4 by solving (A - 4 × I) × v = 0:
+⎡ (3 - 4)     1   ⎤   ⎡ x ⎤   ⎡ 0 ⎤
+⎣    2     (2 - 4) ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
+
+⎡ -1    1 ⎤   ⎡ x ⎤   ⎡ 0 ⎤
+⎣  2   -2 ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
+
+From row 1: -1 × x + 1 × y = 0  =>  y = x.
+Choosing x = 1 gives eigenvector v₁:
+⎡ 1 ⎤
+⎣ 1 ⎦
+
+- Verification:
+  Trace(A) = 3 + 2 = 5 = 4 + 1.
+  det(A) = (3 × 2) - (1 × 2) = 4 = 4 × 1.
+  Condition holds: ∀ eigenvalues λ ∈ {1, 4}.
+
+**COMMON EXAM TRAP & PITFALL:**
+- Remember **Cayley-Hamilton Theorem**: Every square matrix satisfies its own characteristic equation: A² - 5 × A + 4 × I = 0.
+  Multiplying through by A⁻¹ gives an instant formula for the inverse:
+  A⁻¹ = (1 / 4) × (5 × I - A).`,
   },
   'General Engineering': {
-    mechanics: `## 🎯 Quick Conceptual Summary
+    mechanics: `**QUICK CONCEPTUAL SUMMARY:**
 A **Free Body Diagram (FBD)** isolates a mechanical body to reveal all external applied forces, gravity, and support reactions acting on it in static equilibrium.
 
-## 💡 Real-World Analogy: The Central Knot
+**REAL-WORLD ANALOGY: The Central Knot**
 In a tug-of-war where three teams pull on ropes tied to a central ring, determining if the ring moves requires only drawing the tension force arrows acting on the ring itself.
 
-## 🔍 Step-by-Step Breakdown
-1. **Equilibrium Equations**: $\\sum F_x = 0, \\; \\sum F_y = 0, \\; \\sum M_z = 0$.
-2. **Lami's Theorem** (for 3 concurrent coplanar forces):
-   $$\\frac{F_1}{\\sin \\alpha} = \\frac{F_2}{\\sin \\beta} = \\frac{F_3}{\\sin \\gamma}$$
-3. **Reactions**: Pin support ($R_x, R_y$), Roller support (single normal force $R$).
+**STEP-BY-STEP BREAKDOWN:**
+1. **Equilibrium Equations**: ∑ F_x = 0,  ∑ F_y = 0,  ∑ M_z = 0.
+2. **Lami's Theorem** (for 3 concurrent coplanar forces in equilibrium):
+   F₁ / sin(α) = F₂ / sin(β) = F₃ / sin(γ)
+3. **Support Reactions**: Pin support has horizontal and vertical forces (R_x, R_y); Roller support has a single normal force (R).
 
-## 📐 Practical Worked Example
-A $4\\text{ m}$ simply supported beam with a central point load of $10\\text{ kN}$:
-- By symmetry and moment balance: $R_A = R_B = 5\\text{ kN}$.
+**PRACTICAL WORKED EXAMPLE:**
+A 4 m simply supported beam with a central point load of 10 kN:
+- By symmetry and moment balance about support A:
+  ∑ M_A = 0  =>  (10 kN * 2 m) - (R_B * 4 m) = 0  =>  R_B = 5 kN.
+  ∑ F_y = 0  =>  R_A + R_B = 10 kN  =>  R_A = 5 kN.
 
-## ⚠️ Common Exam Trap & Pitfall
+**COMMON EXAM TRAP & PITFALL:**
 - Only external forces belong on an FBD. Never include internal shear or internal moments unless you cut through the section!`,
   },
 };
@@ -797,10 +827,16 @@ app.get('/api/health', (_req, res) => {
 
 // Ask AI endpoint
 app.post('/api/ask', async (req, res) => {
-  const { subject, question } = req.body;
+  const { subject, question, file, selectedModel } = req.body;
+  const activeModel = typeof selectedModel === 'string' && ALLOWED_MODELS.includes(selectedModel)
+    ? selectedModel
+    : 'gemini-3.8-flash';
 
-  if (!question || typeof question !== 'string' || !question.trim()) {
-    return res.status(400).json({ error: 'Please enter a valid question.' });
+  const userQuestion = typeof question === 'string' ? question.trim() : '';
+  const hasFile = file && typeof file === 'object' && typeof file.data === 'string' && file.data.length > 0;
+
+  if (!userQuestion && !hasFile) {
+    return res.status(400).json({ error: 'Please enter a question or upload an image/document.' });
   }
 
   const selectedSubject = subject || 'General Engineering';
@@ -808,34 +844,118 @@ app.post('/api/ask', async (req, res) => {
   const systemInstruction = `You are "ECE Study Buddy", an expert, friendly, and encouraging senior engineering mentor dedicated to first-year undergraduate engineering students.
 The student is asking about: "${selectedSubject}".
 
+RESPONSE SPEED OPTIMIZATION:
+- Keep explanations brief, concise, and direct.
+- Skip conversational filler and jump straight into the step-by-step mathematical solution.
+
+FORMATTING & HEADINGS:
+- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics.
+- Instead of headers, use simple bold text or UPPERCASE labels on a new line (e.g., "THE 2-STEP RECIPE:" or "**The 2-Step Recipe:**").
+
+FILE & IMAGE INPUT INSTRUCTIONS:
+- When the user uploads an image, screenshot, PDF, or document, analyze and extract all mathematical text, matrices, equations, and diagrams.
+- Read both the uploaded file and any accompanying text typed by the user to address their exact question.
+- If an image is blurry or partially cut off, clearly state what part is unreadable and solve as much of the visible problem as possible.
+- Transcribe any detected handwritten or printed equations clearly before providing step-by-step solutions formatted in plain text.
+
+CRITICAL MATHEMATICAL FORMATTING RULES (STRICT COMPLIANCE REQUIRED):
+You are a mathematical assistant. Never use LaTeX markup, LaTeX commands (such as \\lambda, \\mathbf, \\begin{pmatrix}), or dollar signs ($ or $$).
+
+All responses must be rendered in plain text using standard Unicode formatting according to these strict rules:
+
+1. SYMBOLS & VARIABLES:
+   - Use Unicode Greek letters directly (e.g., use λ instead of \\lambda; β, μ, Σ, π, Δ, Ω, θ, α, γ, φ, η).
+   - Use standard text for vectors and matrices (e.g., v, A, I instead of \\mathbf{v}).
+   - Always use the explicit Unicode multiplication symbol × for matrix/vector operations and scalar multiplication (e.g., A × v, 2 × 2 matrix).
+   - Always use the "for all" symbol ∀ whenever describing general conditions (e.g., ∀ λ ∈ ℝ).
+
+2. MATRIX FORMATTING & BRACKETS:
+   - NEVER use python-style list brackets (e.g., [[a, b], [c, d]]) or commas inside matrix rows.
+   - Draw matrices using multi-line Unicode bracket walls (⎡, ⎣, ⎤, ⎦) so one clean set of brackets encloses all rows vertically.
+
+3. HORIZONTAL & VERTICAL ALIGNMENT:
+   - Ensure all operators (×, =, +) and surrounding matrices align in parallel across the exact same horizontal lines.
+   - Pad matrix entries with spaces so elements within the same column align vertically.
+   - Put spaces around minus signs and operators inside matrix entries (e.g., write "(4 - 5)" instead of "4-5") so numbers never touch or visually merge.
+
+Example output format for matrix equations:
+
+⎡ (4 - 5)     2   ⎤   ⎡ x ⎤   ⎡ 0 ⎤
+⎣    1     (3 - 5) ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
+
+⎡  -1    2 ⎤   ⎡ x ⎤   ⎡ 0 ⎤
+⎣   1   -2 ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
+
 Your explanation style must be:
-- Beginner-friendly: Avoid dense academic jargon without explaining it first.
-- Intuitive: Relate abstract concepts to real-world everyday analogies (e.g., water pipe analogies for voltage/current, mailboxes for pointers, physical motion for calculus).
-- Structured:
-  1. 🎯 Quick Conceptual Summary (1-2 sentences)
-  2. 💡 Everyday Analogy or Mental Model
-  3. 🔍 Step-by-Step Technical Explanation (with clearly defined terms & formulas)
-  4. 📐 Practical Example (If C Programming: provide clean, well-commented C code with output. If Basic Electronics: provide circuit values, formulas with Ohm/Volt/Ampere units. If Math: show a clear step-by-step worked problem. If General Eng: practical engineering scenario).
-  5. ⚠️ Common Exam Trap / Beginner Pitfall to watch out for.
-Format with clean Markdown, clear headings, bullet points, and code blocks.`;
+- Brief, direct, and concise: Skip conversational filler and jump straight into the solution.
+- Structured with bold or UPPERCASE labels on a new line (NEVER use # or ## headings):
+  **QUICK CONCEPTUAL SUMMARY:** (1-2 sentences)
+  **TRANSCRIBED PROBLEM & EQUATIONS:** (if an image or document was uploaded, first transcribe any detected handwritten or printed equations, matrices, circuits, or diagrams clearly; note any blurry/partially cut-off areas)
+  **EVERYDAY ANALOGY / INTUITION:**
+  **STEP-BY-STEP SOLUTION:** (with clearly defined terms & formulas formatted with strict Unicode math rules above)
+  **PRACTICAL WORKED EXAMPLE:** (with parallel aligned bracket walls for matrices, plain text units)
+  **COMMON EXAM TRAP & PITFALL:**`;
 
-  const prompt = `Student Question in ${selectedSubject}:
-"${question.trim()}"
+  let promptText = '';
+  if (userQuestion && hasFile) {
+    promptText = `Student uploaded a file (${file.name || 'image/document'}) with question in ${selectedSubject}:
+"${userQuestion}"
 
-Please provide a beginner-friendly explanation with intuitive examples and practical application.`;
+RESPONSE SPEED & FORMATTING REQUIREMENTS:
+- Keep explanation brief, concise, and direct. Skip conversational filler.
+- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line.
+- Analyze and extract all mathematical text, matrices, equations, and diagrams from the uploaded file.
+- Read both the uploaded file and the accompanying question to address the exact inquiry.
+- If the image is blurry or partially cut off, clearly state what part is unreadable and solve as much of the visible problem as possible.
+- Transcribe any detected handwritten or printed equations clearly before providing step-by-step solutions formatted in plain text.
+- Strictly adhere to plain-text Unicode math formatting (no LaTeX, no $ or $$, explicit ×, ∀, and multi-line Unicode bracket walls ⎡, ⎣, ⎤, ⎦).`;
+  } else if (hasFile) {
+    promptText = `Student uploaded a file (${file.name || 'image/document'}) in ${selectedSubject}.
+RESPONSE SPEED & FORMATTING REQUIREMENTS:
+- Keep explanation brief, concise, and direct. Skip conversational filler.
+- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line.
+- Analyze and extract all mathematical text, matrices, equations, and diagrams from the uploaded file.
+- If the image is blurry or partially cut off, clearly state what part is unreadable and solve as much of the visible problem as possible.
+- Transcribe any detected handwritten or printed equations clearly before providing step-by-step solutions formatted in plain text.
+- Strictly adhere to plain-text Unicode math formatting (no LaTeX, no $ or $$, explicit ×, ∀, and multi-line Unicode bracket walls ⎡, ⎣, ⎤, ⎦).`;
+  } else {
+    promptText = `Student Question in ${selectedSubject}:
+"${userQuestion}"
+
+RESPONSE SPEED & FORMATTING REQUIREMENTS:
+- Keep explanation brief, concise, and direct. Skip conversational filler.
+- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line (e.g. "**The 2-Step Recipe:**").
+- Strictly adhere to mathematical formatting rules: Never use LaTeX or dollar signs ($). Use standard Unicode math symbols, explicit × for multiplication, ∀ for general conditions, and multi-line Unicode bracket walls (⎡, ⎣, ⎤, ⎦) with parallel alignment for matrices. Never use python-style list brackets.`;
+  }
+
+  // Construct multimodal contents array for Gemini
+  const contentsPayload: any[] = [];
+  if (hasFile) {
+    const rawBase64 = file.data.includes(',') ? file.data.split(',')[1] : file.data;
+    const mimeType = file.type || 'image/jpeg';
+    contentsPayload.push({
+      inlineData: {
+        mimeType,
+        data: rawBase64,
+      },
+    });
+  }
+  contentsPayload.push(promptText);
 
   // Attempt generation with multi-model failover
   if (process.env.GEMINI_API_KEY) {
     try {
-      const response = await generateWithModelFallback((model) =>
-        ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          },
-        })
+      const response = await generateWithModelFallback(
+        (model) =>
+          ai.models.generateContent({
+            model,
+            contents: contentsPayload,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+            },
+          }),
+        activeModel
       );
 
       const answer = response.text || 'No response generated. Please try again.';
@@ -846,13 +966,16 @@ Please provide a beginner-friendly explanation with intuitive examples and pract
   }
 
   // Graceful curriculum fallback so the user always receives a complete, high-quality answer
-  const fallbackAnswer = getCuratedExplanation(selectedSubject, question.trim());
+  const fallbackAnswer = getCuratedExplanation(selectedSubject, userQuestion || 'matrix');
   return res.json({ answer: fallbackAnswer });
 });
 
 // Generate Quiz Questions endpoint with count and difficulty options
 app.post('/api/quiz', async (req, res) => {
-  const { subject, topic, difficulty, count } = req.body;
+  const { subject, topic, difficulty, count, selectedModel } = req.body;
+  const activeModel = typeof selectedModel === 'string' && ALLOWED_MODELS.includes(selectedModel)
+    ? selectedModel
+    : 'gemini-3.8-flash';
   const selectedSubject = subject || 'Basic Electronics';
   const numQuestions = Math.min(Math.max(Number(count) || 3, 1), 10);
   const selectedDifficulty = difficulty && typeof difficulty === 'string' && difficulty !== 'All' ? difficulty : undefined;
@@ -863,7 +986,14 @@ app.post('/api/quiz', async (req, res) => {
   const prompt = `Generate exactly ${numQuestions} high-quality, conceptual, multiple-choice quiz questions for a first-year engineering student in the subject: "${selectedSubject}", ${topicContext}.
 ${difficultyPrompt}
 Ensure each question tests true understanding rather than mere memorization.
-The 4 options should be realistic and educational, with exactly one indisputably correct answer.`;
+The 4 options should be realistic and educational, with exactly one indisputably correct answer.
+
+CRITICAL MATHEMATICAL FORMATTING RULES:
+- FORMATTING & HEADINGS: NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line.
+- Never use LaTeX formatting, dollar signs ($ or $$), or LaTeX commands (such as \\lambda, \\mathbf, \\begin{pmatrix}, \\frac).
+- SYMBOLS & VARIABLES: Use Unicode Greek letters directly (λ, β, μ, Ω, Σ, π, θ). Use standard text for vectors/matrices (v, A, I). Always use explicit Unicode multiplication symbol × for matrix/vector operations and scalar multiplication. Use ∀ for general conditions.
+- MATRIX FORMATTING: NEVER use python-style list brackets ([[a, b], [c, d]]) or commas inside matrix rows. If displaying matrices, use multi-line Unicode bracket walls (⎡, ⎣, ⎤, ⎦).
+- ALIGNMENT: Align operators (×, =, +) in parallel across rows, pad entries with spaces, and put spaces around minus signs.`;
 
   if (process.env.GEMINI_API_KEY) {
     try {
@@ -872,7 +1002,7 @@ The 4 options should be realistic and educational, with exactly one indisputably
           model,
           contents: prompt,
           config: {
-            systemInstruction: `You are an examination specialist for 1st-year engineering students. Return exactly ${numQuestions} questions formatted strictly to the JSON schema. Each question must have 4 options, a 0-based correctIndex, a comprehensive explanation that clarifies the right answer and why common distractors are incorrect, and a difficulty label ('Beginner', 'Core Concept', 'Exam Level').`,
+            systemInstruction: `You are an examination specialist for 1st-year engineering students. Return exactly ${numQuestions} questions formatted strictly to the JSON schema. Each question must have 4 options, a 0-based correctIndex, a comprehensive explanation that clarifies the right answer and why common distractors are incorrect, and a difficulty label ('Beginner', 'Core Concept', 'Exam Level'). CRITICAL: DO NOT use LaTeX commands or dollar signs ($ or $$). Format all formulas using plain text and Unicode math symbols (e.g., λ, β, μ, Ω, ², ³, ×, ∀). NEVER use Markdown heading symbols (#, ##, ###, ####). NEVER use python-style list brackets for matrices; use Unicode bracket walls (⎡, ⎣, ⎤, ⎦).`,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.ARRAY,
@@ -909,7 +1039,8 @@ The 4 options should be realistic and educational, with exactly one indisputably
               },
             },
           },
-        })
+        }),
+        activeModel
       );
 
       const jsonText = response.text || '[]';

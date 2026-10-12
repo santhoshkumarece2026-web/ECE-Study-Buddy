@@ -188,8 +188,8 @@ export const FORMULA_SHEETS: FormulaCategory[] = [
       },
       {
         title: '2×2 Matrix Inverse',
-        formula: 'A⁻¹ = (1 / (ad - bc)) × [ d, -b ; -c, a ]',
-        note: 'det(A) = ad - bc must be non-zero for inverse to exist',
+        formula: 'A⁻¹ = (1 / (ad - bc)) × ⎡  d  -b ⎤\n                        ⎣ -c   a ⎦',
+        note: 'det(A) = (ad - bc) ≠ 0 ∀ invertible matrices A',
       },
       {
         title: 'Euler\'s Formula',

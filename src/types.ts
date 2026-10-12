@@ -89,3 +89,23 @@ export interface FormulaCategory {
   category: string;
   items: FormulaItem[];
 }
+
+export interface UploadedFileAttachment {
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64 data url or raw data
+  previewUrl?: string;
+}
+
+export type AIModelId = 'gemini-3.1-flash-lite' | 'gemini-3.8-flash' | 'gemini-3.1-pro';
+
+export interface AIModelMode {
+  id: AIModelId;
+  name: string;
+  subtitle: string;
+  badge: string;
+  description: string;
+  speed: string;
+  reasoning: string;
+}

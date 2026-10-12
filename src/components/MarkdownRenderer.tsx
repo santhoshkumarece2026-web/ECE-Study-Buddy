@@ -1,8 +1,148 @@
 import React, { useState } from 'react';
-import { Copy, Check, Terminal, Lightbulb, AlertTriangle, Target, BookOpen } from 'lucide-react';
+import { Copy, Check, Terminal, Lightbulb, AlertTriangle, Target, BookOpen, FileText } from 'lucide-react';
 
 interface MarkdownRendererProps {
   content: string;
+}
+
+function formatLatexMatrixToUnicode(inner: string): string {
+  const rawRows = inner
+    .split('\\\\')
+    .map((r) => r.trim())
+    .filter(Boolean);
+
+  if (rawRows.length === 0) return '';
+
+  const parsedGrid = rawRows.map((row) =>
+    row
+      .split('&')
+      .map((cell) => {
+        let c = cell.trim();
+        // put spaces around operators if needed
+        c = c.replace(/([0-9a-zA-Zλβμαγνθ\(\)])-([0-9a-zA-Zλβμαγνθ\(\)])/g, '$1 - $2');
+        c = c.replace(/([0-9a-zA-Zλβμαγνθ\(\)])\+([0-9a-zA-Zλβμαγνθ\(\)])/g, '$1 + $2');
+        return c;
+      })
+  );
+
+  const numCols = Math.max(...parsedGrid.map((r) => r.length));
+  const colWidths: number[] = [];
+  for (let c = 0; c < numCols; c++) {
+    let maxW = 0;
+    for (let r = 0; r < parsedGrid.length; r++) {
+      const cellLen = (parsedGrid[r][c] || '').length;
+      if (cellLen > maxW) maxW = cellLen;
+    }
+    colWidths.push(maxW);
+  }
+
+  const lines = parsedGrid.map((row, rIdx) => {
+    const formattedCells = colWidths.map((w, cIdx) => {
+      const val = row[cIdx] || '';
+      return val.padStart(w, ' ');
+    });
+    const content = formattedCells.join('   ');
+    if (parsedGrid.length === 1) {
+      return `[ ${content} ]`;
+    }
+    if (parsedGrid.length === 2) {
+      return rIdx === 0 ? `⎡ ${content} ⎤` : `⎣ ${content} ⎦`;
+    }
+    if (rIdx === 0) return `⎡ ${content} ⎤`;
+    if (rIdx === parsedGrid.length - 1) return `⎣ ${content} ⎦`;
+    return `⎢ ${content} ⎥`;
+  });
+
+  return lines.join('\n');
+}
+
+function cleanLatexToUnicode(raw: string): string {
+  if (!raw) return '';
+
+  let cleaned = raw;
+
+  // Replace matrix blocks \begin{pmatrix} ... \end{pmatrix} or \begin{bmatrix} ... \end{bmatrix}
+  cleaned = cleaned.replace(/\\begin\{[pbvV]?matrix\}([\s\S]*?)\\end\{[pbvV]?matrix\}/g, (_, inner: string) => {
+    return formatLatexMatrixToUnicode(inner);
+  });
+
+  // Replace \frac{a}{b} with (a / b)
+  cleaned = cleaned.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 / $2)');
+  cleaned = cleaned.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 / $2)');
+
+  // Replace common Greek letters
+  cleaned = cleaned
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\Lambda/g, 'Λ')
+    .replace(/\\beta/g, 'β')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\gamma/g, 'γ')
+    .replace(/\\Gamma/g, 'Γ')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\Theta/g, 'Θ')
+    .replace(/\\mu/g, 'μ')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\Pi/g, 'Π')
+    .replace(/\\sigma/g, 'σ')
+    .replace(/\\Sigma/g, 'Σ')
+    .replace(/\\omega/g, 'ω')
+    .replace(/\\Omega/g, 'Ω')
+    .replace(/\\phi/g, 'φ')
+    .replace(/\\Phi/g, 'Φ')
+    .replace(/\\eta/g, 'η')
+    .replace(/\\delta/g, 'δ')
+    .replace(/\\Delta/g, 'Δ')
+    .replace(/\\epsilon/g, 'ε');
+
+  // Replace common math operators & symbols
+  cleaned = cleaned
+    .replace(/\\sum/g, '∑')
+    .replace(/\\prod/g, '∏')
+    .replace(/\\int/g, '∫')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\ne/g, '≠')
+    .replace(/\\leq/g, '≤')
+    .replace(/\\le/g, '≤')
+    .replace(/\\geq/g, '≥')
+    .replace(/\\ge/g, '≥')
+    .replace(/\\times/g, '×')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\pm/g, '±')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\nabla/g, '∇')
+    .replace(/\\partial/g, '∂')
+    .replace(/\\forall/g, '∀')
+    .replace(/\\exists/g, '∃')
+    .replace(/\\in/g, '∈')
+    .replace(/\\notin/g, '∉')
+    .replace(/\\subset/g, '⊂')
+    .replace(/\\subseteq/g, '⊆')
+    .replace(/\\mathbb\{R\}/g, 'ℝ')
+    .replace(/\\mathbb\{C\}/g, 'ℂ')
+    .replace(/\\mathbb\{Z\}/g, 'ℤ')
+    .replace(/\\mathbb\{N\}/g, 'ℕ')
+    .replace(/\\rightarrow/g, '→')
+    .replace(/\\to/g, '→')
+    .replace(/\\implies/g, '=>')
+    .replace(/\\iff/g, '<=>');
+
+  // Strip font/format macros like \text{...}, \mathbf{...}, \mathrm{...}, \mathit{...}
+  cleaned = cleaned.replace(/\\[a-zA-Z]+\{([^{}]*)\}/g, '$1');
+
+  // Strip remaining escape slashes on brackets: \[ \] \( \) \{ \}
+  cleaned = cleaned
+    .replace(/\\([\{\}\[\]\(\)])/g, '$1')
+    .replace(/\\;/g, ' ')
+    .replace(/\\,/g, ' ')
+    .replace(/\\!/g, '')
+    .replace(/\\quad/g, '  ')
+    .replace(/\\qquad/g, '    ');
+
+  // Remove $$ and $ markers
+  cleaned = cleaned.replace(/\$\$/g, '').replace(/\$/g, '');
+
+  return cleaned;
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
@@ -14,7 +154,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const lines = content.split('\n');
+  const sanitizedContent = cleanLatexToUnicode(content);
+  const lines = sanitizedContent.split('\n');
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
@@ -74,43 +215,48 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
       continue;
     }
 
-    // Check Headings
-    if (line.startsWith('### ')) {
-      elements.push(
-        <h4 key={`h4-${i}`} className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-4 mb-2 flex items-center gap-2">
-          {renderInlineFormatting(line.replace('### ', ''))}
-        </h4>
-      );
-      continue;
+    // Sanitize any Markdown heading markers (#, ##, ###) by stripping them
+    let effectiveLine = line.trim();
+    let isHeadingLike = false;
+    if (/^#{1,6}\s+/.test(effectiveLine)) {
+      effectiveLine = effectiveLine.replace(/^#{1,6}\s+/, '');
+      isHeadingLike = true;
     }
 
-    if (line.startsWith('## ')) {
-      const headingText = line.replace('## ', '');
-      const isAnalogy = headingText.includes('Analogy') || headingText.includes('Intuition') || headingText.includes('💡');
-      const isPitfall = headingText.includes('Pitfall') || headingText.includes('Trap') || headingText.includes('⚠️');
-      const isSummary = headingText.includes('Summary') || headingText.includes('🎯');
+    // Detect standalone bold labels (e.g. "**The 2-Step Recipe:**" or "**QUICK SUMMARY**")
+    // and UPPERCASE labels (e.g. "THE 2-STEP RECIPE:" or "QUICK CONCEPTUAL SUMMARY:")
+    const isBoldLabel =
+      (effectiveLine.startsWith('**') && effectiveLine.endsWith('**')) ||
+      (effectiveLine.startsWith('**') && effectiveLine.endsWith('**:')) ||
+      (effectiveLine.startsWith('**') && effectiveLine.includes('**:'));
+
+    const lettersOnly = effectiveLine.replace(/[^a-zA-Z]/g, '');
+    const isUpperLabel =
+      lettersOnly.length >= 3 &&
+      lettersOnly === lettersOnly.toUpperCase() &&
+      effectiveLine.endsWith(':');
+
+    if (isHeadingLike || (isBoldLabel && effectiveLine.length < 100) || (isUpperLabel && effectiveLine.length < 80)) {
+      const isAnalogy = effectiveLine.includes('Analogy') || effectiveLine.includes('Intuition') || effectiveLine.includes('💡');
+      const isPitfall = effectiveLine.includes('Pitfall') || effectiveLine.includes('Trap') || effectiveLine.includes('Warning') || effectiveLine.includes('⚠️');
+      const isSummary = effectiveLine.includes('Summary') || effectiveLine.includes('🎯');
+      const isTranscribed = effectiveLine.includes('Transcribe') || effectiveLine.includes('📝');
 
       elements.push(
-        <div key={`h3-${i}`} className="mt-6 mb-2.5">
+        <div key={`section-label-${i}`} className="mt-5 mb-2">
           <div className="flex items-center gap-2">
             {isAnalogy && <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />}
             {isPitfall && <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />}
             {isSummary && <Target className="w-4 h-4 text-blue-500 shrink-0" />}
-            {!isAnalogy && !isPitfall && !isSummary && <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />}
-            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-              {renderInlineFormatting(headingText)}
-            </h3>
+            {isTranscribed && <FileText className="w-4 h-4 text-indigo-500 shrink-0" />}
+            {!isAnalogy && !isPitfall && !isSummary && !isTranscribed && (
+              <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
+            )}
+            <div className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">
+              {renderInlineFormatting(effectiveLine)}
+            </div>
           </div>
         </div>
-      );
-      continue;
-    }
-
-    if (line.startsWith('# ')) {
-      elements.push(
-        <h2 key={`h2-${i}`} className="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3 border-b pb-1.5 border-slate-200 dark:border-slate-800">
-          {renderInlineFormatting(line.replace('# ', ''))}
-        </h2>
       );
       continue;
     }
@@ -141,6 +287,38 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     // Empty line
     if (!line.trim()) {
       elements.push(<div key={`empty-${i}`} className="h-1.5" />);
+      continue;
+    }
+
+    // Matrix Unicode bracket wall blocks
+    if (line.includes('⎡') || line.includes('⎣') || line.includes('⎢')) {
+      const matrixLines: string[] = [line];
+      while (
+        i + 1 < lines.length &&
+        lines[i + 1].trim() !== '' &&
+        !lines[i + 1].startsWith('#') &&
+        !lines[i + 1].startsWith('-') &&
+        (lines[i + 1].includes('⎡') ||
+          lines[i + 1].includes('⎣') ||
+          lines[i + 1].includes('⎢') ||
+          lines[i + 1].includes('⎦') ||
+          lines[i + 1].includes('⎥') ||
+          lines[i + 1].includes('×') ||
+          lines[i + 1].includes('='))
+      ) {
+        i++;
+        matrixLines.push(lines[i]);
+      }
+      elements.push(
+        <div
+          key={`matrix-wall-${i}`}
+          className="my-3 overflow-x-auto rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-900/90 p-3.5 shadow-2xs"
+        >
+          <pre className="font-mono text-sm leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre tabular-nums">
+            {matrixLines.join('\n')}
+          </pre>
+        </div>
+      );
       continue;
     }
 

@@ -8,7 +8,9 @@ import {
   WeakTopicRecord, 
   QuizDifficulty, 
   QuizLength, 
-  QuizQuestionResult 
+  QuizQuestionResult,
+  UploadedFileAttachment,
+  AIModelId 
 } from './types';
 import { SUBJECTS } from './data/subjectData';
 import { Navbar } from './components/Navbar';
@@ -32,7 +34,10 @@ import {
   Lightbulb, 
   ShieldAlert, 
   X, 
-  RotateCcw 
+  RotateCcw,
+  Paperclip,
+  FileText,
+  Image as ImageIcon 
 } from 'lucide-react';
 
 function calculateStreakDays(records: QuizAttemptRecord[]): number {
@@ -134,6 +139,37 @@ export default function App() {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [isAskingAI, setIsAskingAI] = useState<boolean>(false);
   const [askError, setAskError] = useState<string | null>(null);
+
+  // Active AI Model Selection State
+  const [selectedModel, setSelectedModel] = useState<AIModelId>(() => {
+    try {
+      const saved = localStorage.getItem('ece_study_model');
+      if (
+        saved === 'gemini-3.1-flash-lite' || 
+        saved === 'gemini-3.8-flash' || 
+        saved === 'gemini-3.1-pro'
+      ) {
+        return saved as AIModelId;
+      }
+    } catch {
+      // ignore
+    }
+    return 'gemini-3.8-flash';
+  });
+
+  const handleSelectModel = (model: AIModelId) => {
+    setSelectedModel(model);
+    try {
+      localStorage.setItem('ece_study_model', model);
+    } catch {
+      // ignore
+    }
+  };
+
+  // File & Image Attachment State
+  const [attachedFile, setAttachedFile] = useState<UploadedFileAttachment | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Quiz State & Parameters
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
@@ -294,6 +330,62 @@ export default function App() {
     setTimeout(() => setSavedBookmarkToast(false), 2500);
   };
 
+  // File processing helpers for image, screenshot, PDF and document uploads
+  const processFile = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      setAskError('File is too large (maximum 20MB). Please select a smaller image or document.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setAttachedFile({
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        data: dataUrl,
+        previewUrl: file.type.startsWith('image/') ? dataUrl : undefined,
+      });
+      setAskError(null);
+    };
+    reader.onerror = () => {
+      setAskError('Failed to read the file. Please try again.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/') || items[i].type === 'application/pdf') {
+        const file = items[i].getAsFile();
+        if (file) {
+          processFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
   // Switch subject handler with clean session reset & aborting in-flight requests
   const handleSelectSubject = (id: SubjectId) => {
     if (id === selectedSubjectId) {
@@ -309,6 +401,7 @@ export default function App() {
 
     setSelectedSubjectId(id);
     setQuestion('');
+    setAttachedFile(null); // Clear attached file so previous subject's file does not persist
     setExplanation(null);
     setQuizQuestions(null);
     setAskError(null);
@@ -318,10 +411,10 @@ export default function App() {
     setSwitchNotice(`Switched to ${targetName}. Started a new conversation.`);
   };
 
-  // Handle Ask AI with AbortController
+  // Handle Ask AI with AbortController and multimodal attachment support
   const handleAskAI = async () => {
-    if (!question.trim()) {
-      setAskError('Please enter a question or select one of the syllabus topics.');
+    if (!question.trim() && !attachedFile) {
+      setAskError('Please enter a question or upload an image, screenshot, or document.');
       return;
     }
 
@@ -343,6 +436,15 @@ export default function App() {
         body: JSON.stringify({
           subject: currentSubject.name,
           question: question.trim(),
+          selectedModel,
+          file: attachedFile
+            ? {
+                name: attachedFile.name,
+                type: attachedFile.type,
+                size: attachedFile.size,
+                data: attachedFile.data,
+              }
+            : undefined,
         }),
         signal: controller.signal,
       });
@@ -355,12 +457,13 @@ export default function App() {
 
       setExplanation(data.answer);
 
+      const titleQuestion = question.trim() || (attachedFile ? `[Image Analysis: ${attachedFile.name}]` : currentSubject.name);
       const newItem: StudyHistoryItem = {
         id: Date.now().toString(),
         timestamp: Date.now(),
         subjectId: selectedSubjectId,
         subjectName: currentSubject.name,
-        question: question.trim(),
+        question: titleQuestion,
         answer: data.answer,
       };
 
@@ -407,6 +510,7 @@ export default function App() {
           topic: targetTopic || undefined,
           difficulty: diff,
           count,
+          selectedModel,
         }),
         signal: controller.signal,
       });
@@ -493,6 +597,8 @@ export default function App() {
         streakDays={streakDays}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        selectedModel={selectedModel}
+        onSelectModel={handleSelectModel}
       />
 
       {/* Main Educational Dashboard */}
@@ -595,19 +701,81 @@ export default function App() {
 
             {/* Question Studio Input Card */}
             <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileInputChange}
+                accept="image/*,application/pdf,.txt"
+                className="hidden"
+                aria-label="Upload image, screenshot, or PDF"
+              />
+
               <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <label htmlFor="question-input">2. Enter Question or Topic</label>
-                {question && (
-                  <button
-                    onClick={() => setQuestion('')}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
+                <label htmlFor="question-input">2. Enter Question or Upload Problem</label>
+                <div className="flex items-center gap-2">
+                  {(question || attachedFile) && (
+                    <button
+                      onClick={() => {
+                        setQuestion('');
+                        setAttachedFile(null);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+              {/* Uploaded File Attachment Preview */}
+              {attachedFile && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/80 text-xs shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {attachedFile.previewUrl ? (
+                      <img
+                        src={attachedFile.previewUrl}
+                        alt={attachedFile.name}
+                        className="w-11 h-11 object-cover rounded-lg border border-blue-200 dark:border-blue-700 shrink-0 shadow-2xs"
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 truncate max-w-[200px] sm:max-w-[260px]">
+                        {attachedFile.name}
+                      </p>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                        {(attachedFile.size / 1024).toFixed(1)} KB • {attachedFile.type.startsWith('image/') ? 'Image/Diagram' : 'Document'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedFile(null)}
+                    className="p-1 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    title="Remove attached file"
+                    aria-label="Remove attached file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                className={`rounded-xl border transition-all ${
+                  isDragging
+                    ? 'border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/30 dark:bg-blue-950/30'
+                    : 'border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
+                }`}
+              >
                 <textarea
                   id="question-input"
                   value={question}
@@ -615,8 +783,13 @@ export default function App() {
                     setQuestion(e.target.value);
                     if (askError) setAskError(null);
                   }}
+                  onPaste={handlePaste}
                   rows={3}
-                  placeholder={`Ask anything about ${activeSubject.shortName} (e.g. "${activeSubject.sampleQuestions[0]}")`}
+                  placeholder={
+                    attachedFile
+                      ? `Add specific notes or instructions for ${attachedFile.name} (optional)...`
+                      : `Ask anything about ${activeSubject.shortName} or attach/paste problem screenshot...`
+                  }
                   className="w-full p-3.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent resize-none focus:outline-hidden"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -627,8 +800,22 @@ export default function App() {
                 />
 
                 <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-400">
-                  <span className="hidden sm:inline">Shortcut: Ctrl+Enter</span>
-                  <span className="tabular-nums">{question.length} characters</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer font-medium text-[11px]"
+                      title="Upload problem image, screenshot, or document"
+                    >
+                      <Paperclip className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{attachedFile ? 'Change File' : 'Attach File'}</span>
+                    </button>
+                    <span className="hidden sm:inline text-slate-400">Drag & drop or paste screenshot</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline">Ctrl+Enter</span>
+                    <span className="tabular-nums">{question.length} chars</span>
+                  </div>
                 </div>
               </div>
 
@@ -642,7 +829,15 @@ export default function App() {
                   className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>{isAskingAI ? 'Analyzing...' : 'Ask AI'}</span>
+                  <span>
+                    {isAskingAI
+                      ? attachedFile
+                        ? 'Analyzing Problem...'
+                        : 'Analyzing...'
+                      : attachedFile
+                      ? 'Solve Uploaded Problem'
+                      : 'Ask AI'}
+                  </span>
                 </button>
 
                 {/* Generate Quiz Questions Button */}
@@ -655,6 +850,20 @@ export default function App() {
                   <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>{isGeneratingQuiz ? 'Creating Quiz...' : `Quiz (${quizLength} Qs)`}</span>
                 </button>
+              </div>
+
+              {/* Active AI Engine Indicator */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>Engine:</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">
+                    {selectedModel === 'gemini-3.1-flash-lite' ? 'Fast (gemini-3.1-flash-lite)' : selectedModel === 'gemini-3.1-pro' ? 'Deep Reasoning (gemini-3.1-pro)' : 'Balanced (gemini-3.8-flash)'}
+                  </span>
+                </span>
+                <span className="text-[10px] text-slate-400 shrink-0 hidden sm:inline">
+                  Change mode in top header
+                </span>
               </div>
 
               {/* Sample Questions */}
