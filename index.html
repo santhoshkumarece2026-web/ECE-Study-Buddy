@@ -51,7 +51,21 @@
         }
       })();
     </script>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('ece_theme');
+          var isDark = saved === 'dark' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>ECE Study Buddy - First-Year Engineering Companion</title>
     <meta name="description" content="Interactive AI study buddy for first-year engineering students covering Basic Electronics, C Programming, Engineering Mathematics, and General Engineering." />
     <meta property="og:title" content="ECE Study Buddy - First-Year Engineering Companion" />

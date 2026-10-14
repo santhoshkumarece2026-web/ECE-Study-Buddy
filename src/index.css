@@ -1,14 +1,85 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
+  html {
+    /* Prevent accidental horizontal overflow viewport scrolling */
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 100%;
   }
 
+  /* Prevent automatic iOS zooming on text inputs while keeping readable scaling */
+  input, textarea, select {
+    font-family: inherit;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (max-width: 640px) {
+    input[type="text"],
+    input[type="search"],
+    textarea {
+      font-size: 16px !important; /* Prevents auto-zoom in mobile Safari */
+    }
+  }
+
+  /* Monospaced code engine */
   code, pre, kbd {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0;
+  }
+
+  /* Mobile-first tap ergonomics */
+  button, [role="button"], a {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Responsive Layout & Ergonomic Tap Target Utilities */
+@layer utilities {
+  /* Strict container containment preventing children from blowing out mobile width */
+  .card-responsive {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Standard mobile touch target sizes (WCAG recommended 44px) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .touch-target-compact {
+    min-height: 38px;
+  }
+
+  /* Momentum smooth scrolling on mobile */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Safe flex/grid child min-width reset to prevent blowout */
+  .flex-child-safe {
+    min-width: 0;
+    flex-shrink: 1;
   }
 }
 

@@ -117,11 +117,11 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
   const optionLetters = ['A', 'B', 'C', 'D'];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5 w-full min-w-0">
       {/* Quiz Top Action & Controls Bar */}
-      <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3.5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
+      <div className="p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3.5 w-full min-w-0 card-responsive">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
                 {isRetryMode ? 'Retry Missed Questions' : 'Concept Check Quiz'}
@@ -133,7 +133,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               <span>{subjectName}</span>
               <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
               <span>{selectedDifficulty}</span>
@@ -142,18 +142,18 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
             {isRetryMode ? (
               <button
                 onClick={handleExitRetry}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors cursor-pointer text-center"
               >
                 Back to Full Quiz
               </button>
             ) : totalAnswered > 0 ? (
               <button
                 onClick={handleReset}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -163,7 +163,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             <button
               onClick={() => onGenerateNew(selectedDifficulty, selectedLength)}
               disabled={isGeneratingNew}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="flex-1 sm:flex-initial px-4 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs text-center"
             >
               {isGeneratingNew ? (
                 <>
@@ -181,19 +181,19 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
         </div>
 
         {/* Quiz Parameter Selectors: Difficulty & Length */}
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs w-full min-w-0">
           {/* Difficulty Segmented Buttons */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 font-medium flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-slate-400 font-medium flex items-center gap-1 shrink-0">
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Difficulty:</span>
             </span>
-            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+            <div className="flex flex-wrap items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
               {(['Beginner', 'Core Concept', 'Exam Level'] as QuizDifficulty[]).map((diff) => (
                 <button
                   key={diff}
                   onClick={() => onChangeDifficulty(diff)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1.5 min-h-[32px] rounded-md text-xs font-medium transition-colors cursor-pointer ${
                     selectedDifficulty === diff
                       ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -207,13 +207,13 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
 
           {/* Length Segmented Buttons */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 font-medium">Questions:</span>
+            <span className="text-slate-400 font-medium shrink-0">Questions:</span>
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
               {([3, 5, 10] as QuizLength[]).map((len) => (
                 <button
                   key={len}
                   onClick={() => onChangeLength(len)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer tabular-nums ${
+                  className={`px-2.5 py-1.5 min-h-[32px] rounded-md text-xs font-medium transition-colors cursor-pointer tabular-nums ${
                     selectedLength === len
                       ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -237,22 +237,22 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
           return (
             <div
               key={qIndex}
-              className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs transition-colors"
+              className="p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs transition-colors w-full min-w-0 card-responsive"
             >
-              {/* Question Metadata Line (Clean unboxed text, no mangled characters) */}
+              {/* Question Metadata Line */}
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-900 dark:text-slate-200 tabular-nums">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-semibold text-slate-900 dark:text-slate-200 tabular-nums shrink-0">
                     Question {qIndex + 1 < 10 ? `0${qIndex + 1}` : qIndex + 1}
                   </span>
                   {q.subtopic && (
                     <>
                       <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-1">/</span>
-                      <span className="text-slate-600 dark:text-slate-300">{q.subtopic}</span>
+                      <span className="text-slate-600 dark:text-slate-300 truncate">{q.subtopic}</span>
                     </>
                   )}
                 </div>
-                <span className="text-[11px] font-medium text-slate-400">
+                <span className="text-[11px] font-medium text-slate-400 shrink-0 ml-1">
                   {q.difficulty}
                 </span>
               </div>
@@ -289,7 +289,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
                       key={optIndex}
                       onClick={() => handleSelectOption(qIndex, optIndex)}
                       disabled={hasAnswered}
-                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${optionClasses}`}
+                      className={`w-full text-left p-3 sm:p-3.5 min-h-[46px] rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${optionClasses}`}
                     >
                       <span
                         className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-xs font-bold shrink-0 mt-0.5 ${
@@ -344,16 +344,16 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
 
       {/* Progress, Score & Retry Strip */}
       {totalAnswered > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 sm:gap-4 w-full min-w-0 card-responsive">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 shrink-0">
               <Award className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">
                 Score: {correctCount} / {activeQuestions.length} ({Math.round((correctCount / activeQuestions.length) * 100)}%)
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
                 {correctCount === activeQuestions.length
                   ? 'Outstanding! Complete mastery of all concepts in this question set.'
                   : totalAnswered === activeQuestions.length
@@ -363,11 +363,11 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
             {!showAllExplanations && totalAnswered < activeQuestions.length && (
               <button
                 onClick={() => setShowAllExplanations(true)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
+                className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer text-center"
               >
                 Reveal Explanations
               </button>
@@ -377,7 +377,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             {totalAnswered === activeQuestions.length && incorrectCount > 0 && !isRetryMode && (
               <button
                 onClick={handleStartRetryIncorrect}
-                className="px-3.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 dark:hover:bg-amber-900 border border-amber-300 dark:border-amber-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 dark:hover:bg-amber-900 border border-amber-300 dark:border-amber-800 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Retry Incorrect ({incorrectCount})</span>
@@ -387,7 +387,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             <button
               onClick={() => onGenerateNew(selectedDifficulty, selectedLength)}
               disabled={isGeneratingNew}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shadow-xs"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-1.5 min-h-[38px] text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition-colors cursor-pointer shadow-xs text-center"
             >
               New Quiz ({selectedLength})
             </button>

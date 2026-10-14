@@ -12,23 +12,28 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = http.createServer(app);
-const PORT = process.env.PORT || 3000;
+const portArgIdx = process.argv.indexOf('--port');
+const PORT = portArgIdx !== -1 && process.argv[portArgIdx + 1] ? Number(process.argv[portArgIdx + 1]) : 3000;
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Initialize Gemini SDK with User-Agent telemetry
+// Initialize Gemini SDK with User-Agent telemetry and explicit retry control
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
   httpOptions: {
     headers: {
       'User-Agent': 'aistudio-build',
     },
+    retryOptions: {
+      attempts: 1, // Prevent SDK from executing unconstrained 5-retry loop; our server handles model fallback and bounded backoff
+    },
   },
 });
 
 // Primary model initialization
-const MODEL_NAME = 'gemini-3.8-flash';
+const MODEL_NAME = 'gemini-3.1-flash-lite';
+
 
 // Curated fallback quizzes for high-demand spikes
 const FALLBACK_QUIZZES: Record<string, any[]> = {
@@ -562,32 +567,362 @@ const FALLBACK_QUIZZES: Record<string, any[]> = {
   ],
 };
 
-// Multi-model failover candidates in order of preference, initialized with gemini-3.8-flash
-const MODEL_CANDIDATES = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro', 'gemini-flash-latest'];
-const ALLOWED_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-pro'];
+// Multi-model failover candidates in order of resilience and speed
+const MODEL_CANDIDATES = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash'];
+const ALLOWED_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-pro', 'gemini-flash-latest'];
 
-async function generateWithModelFallback(
-  makeCall: (model: string) => Promise<any>,
-  preferredModel: string = 'gemini-3.8-flash'
-): Promise<any> {
-  const chosenModel = ALLOWED_MODELS.includes(preferredModel) ? preferredModel : 'gemini-3.8-flash';
-  // Try preferred model first, then remaining candidates
-  const candidates = [
-    chosenModel,
-    ...MODEL_CANDIDATES.filter((m) => m !== chosenModel),
-  ];
+export interface GeminiErrorInfo {
+  httpStatus: number | null;
+  statusText: string;
+  message: string;
+  details: string;
+  is503HighDemand: boolean;
+  is429QuotaExhausted: boolean;
+  isTemporary: boolean;
+}
 
-  let lastError: any = null;
-  for (const model of candidates) {
-    try {
-      return await makeCall(model);
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`Model "${model}" failed or unavailable (${err?.message || 'error'}). Trying next candidate...`);
-      continue;
+/**
+ * Inspect complete Gemini API error details to accurately distinguish
+ * temporary service overload (503) from rate limits or quota exhaustion (429).
+ */
+export function parseGeminiError(err: any): GeminiErrorInfo {
+  if (!err) {
+    return {
+      httpStatus: null,
+      statusText: '',
+      message: 'Unknown error',
+      details: '',
+      is503HighDemand: false,
+      is429QuotaExhausted: false,
+      isTemporary: false,
+    };
+  }
+
+  let code: number | null = null;
+  let statusText = '';
+  let detailMessage = '';
+
+  // 1. Check direct properties
+  if (typeof err?.status === 'number') code = err.status;
+  else if (typeof err?.statusCode === 'number') code = err.statusCode;
+  else if (typeof err?.code === 'number') code = err.code;
+  else if (typeof err?.status === 'string' && /^\d+$/.test(err.status)) code = parseInt(err.status, 10);
+  else if (typeof err?.code === 'string' && /^\d+$/.test(err.code)) code = parseInt(err.code, 10);
+
+  if (typeof err?.status === 'string' && !code) statusText = err.status;
+
+  const rawMsg = typeof err?.message === 'string' ? err.message : String(err);
+  detailMessage = rawMsg;
+
+  // 2. Try parsing message if it contains JSON error object (typical for @google/genai ApiError)
+  let parsedJson: any = null;
+  if (typeof err?.message === 'string') {
+    const braceIdx = err.message.indexOf('{');
+    if (braceIdx !== -1) {
+      try {
+        parsedJson = JSON.parse(err.message.slice(braceIdx));
+      } catch {
+        // Not valid JSON
+      }
     }
   }
-  throw lastError;
+
+  const errObj = parsedJson?.error || err?.error;
+  if (errObj) {
+    if (typeof errObj.code === 'number') code = errObj.code;
+    if (typeof errObj.status === 'string') statusText = errObj.status;
+    if (typeof errObj.message === 'string') {
+      detailMessage = errObj.message;
+      // Handle nested JSON strings inside errObj.message
+      if (detailMessage.startsWith('{')) {
+        try {
+          const nested = JSON.parse(detailMessage);
+          if (nested?.error?.code) code = nested.error.code;
+          if (nested?.error?.status) statusText = nested.error.status;
+          if (nested?.error?.message) detailMessage = nested.error.message;
+        } catch {
+          // not nested json
+        }
+      }
+    }
+  }
+
+  const textToScan = `${rawMsg} ${statusText} ${detailMessage} ${JSON.stringify(parsedJson || '')}`.toLowerCase();
+
+  // Distinguish 429 Rate Limit or Quota Exhaustion
+  const is429QuotaExhausted =
+    code === 429 ||
+    statusText.toUpperCase() === 'RESOURCE_EXHAUSTED' ||
+    textToScan.includes('resource_exhausted') ||
+    textToScan.includes('resourceexhausted') ||
+    textToScan.includes('exceeded your current quota') ||
+    textToScan.includes('quota exceeded') ||
+    textToScan.includes('rate limit') ||
+    textToScan.includes('check your plan and billing') ||
+    (textToScan.includes('429') && !textToScan.includes('503'));
+
+  // Distinguish 503 High Demand or Service Unavailable (when not quota exhausted)
+  const is503HighDemand =
+    !is429QuotaExhausted &&
+    (code === 503 ||
+      statusText.toUpperCase() === 'UNAVAILABLE' ||
+      textToScan.includes('503') ||
+      textToScan.includes('unavailable') ||
+      textToScan.includes('high demand') ||
+      textToScan.includes('spikes in demand') ||
+      textToScan.includes('service unavailable') ||
+      textToScan.includes('temporarily unavailable') ||
+      textToScan.includes('overloaded'));
+
+  const isTimeout = textToScan.includes('timeout') || textToScan.includes('etimedout') || textToScan.includes('aborterror') || (code === 504);
+  const isTemporary = is503HighDemand || isTimeout || (!is429QuotaExhausted && (code === 502 || code === 504));
+
+  return {
+    httpStatus: code,
+    statusText,
+    message: detailMessage || rawMsg,
+    details: rawMsg,
+    is503HighDemand,
+    is429QuotaExhausted,
+    isTemporary,
+  };
+}
+
+/**
+ * Backward compatibility helper for 503 check
+ */
+function is503OrUnavailable(err: any): boolean {
+  return parseGeminiError(err).is503HighDemand;
+}
+
+/**
+ * Map shorthand model names to valid SDK identifiers
+ */
+const mapToSdkModel = (m: string): string => {
+  if (m === 'gemini-3.1-pro') return 'gemini-3.1-pro-preview';
+  return m;
+};
+
+/**
+ * Robust fallback sequence executor for synchronous Gemini JSON requests.
+ * Distinguishes 503 vs 429, uses small retry limit and backoff for temporary errors,
+ * avoids repeating 429 quota exhaustion, and tries candidate models.
+ */
+async function generateWithModelFallback(
+  makeCall: (model: string) => Promise<any>,
+  preferredModel: string = 'gemini-3.1-flash-lite'
+): Promise<any> {
+  const initialModel = mapToSdkModel(
+    ALLOWED_MODELS.includes(preferredModel) ? preferredModel : 'gemini-3.1-flash-lite'
+  );
+
+  const sequence: string[] = [initialModel];
+  if (initialModel === 'gemini-3.1-flash-lite') {
+    sequence.push('gemini-flash-latest', 'gemini-3.8-flash');
+  } else if (initialModel === 'gemini-3.8-flash') {
+    sequence.push('gemini-3.1-flash-lite', 'gemini-flash-latest');
+  } else {
+    sequence.push('gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash');
+  }
+
+  const candidates = Array.from(new Set(sequence));
+  let lastError: any = null;
+  let lastErrorInfo: GeminiErrorInfo | null = null;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const model = candidates[i];
+    const nextModel = candidates[i + 1];
+
+    const MAX_TEMPORARY_RETRIES = 1;
+    let attempt = 0;
+
+    while (attempt <= MAX_TEMPORARY_RETRIES) {
+      attempt++;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error(`Timeout connecting to model "${model}" after 14000ms`)),
+            14000
+          );
+        });
+
+        const result = await Promise.race([makeCall(model), timeoutPromise]);
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+
+        if (i > 0) {
+          console.info(`[Gemini Fallback] Successfully served request using fallback model "${model}".`);
+        }
+        if (result && typeof result === 'object') {
+          result.usedModel = model;
+        }
+        return result;
+      } catch (err: any) {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+        lastError = err;
+        const errorInfo = parseGeminiError(err);
+        lastErrorInfo = errorInfo;
+
+        if (errorInfo.is429QuotaExhausted) {
+          console.warn(
+            `[Gemini Fallback] Model "${model}" failed with 429 Quota Exhaustion (${errorInfo.message}). Skipping repeat attempts on this model.`
+          );
+          if (nextModel) {
+            console.info(`[Gemini Fallback] Attempting alternative fallback candidate "${nextModel}"...`);
+          }
+          break; // Do NOT retry 429; move to next candidate model
+        } else if (errorInfo.is503HighDemand) {
+          if (attempt <= MAX_TEMPORARY_RETRIES) {
+            console.warn(
+              `[Gemini Fallback] Model "${model}" failed with 503 High Demand (${errorInfo.message}). Applying 500ms backoff before retry (attempt ${attempt}/${MAX_TEMPORARY_RETRIES + 1})...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            continue;
+          } else {
+            console.warn(
+              `[Gemini Fallback] Model "${model}" 503 retry limit reached.` +
+              (nextModel ? ` Automatically switching to next candidate "${nextModel}"...` : ' All model candidates exhausted.')
+            );
+            break;
+          }
+        } else {
+          console.warn(
+            `[Gemini Fallback] Model "${model}" failed [HTTP ${errorInfo.httpStatus || 'N/A'}] (${errorInfo.message}).` +
+            (nextModel ? ` Trying next candidate "${nextModel}"...` : ' All candidates exhausted.')
+          );
+          break;
+        }
+      }
+    }
+  }
+
+  const errToThrow = lastError || new Error('All model candidates failed.');
+  (errToThrow as any).lastErrorInfo = lastErrorInfo;
+  throw errToThrow;
+}
+
+/**
+ * Robust fallback sequence executor for streaming Gemini models.
+ * If a model fails before streaming begins, tries appropriate supported fallback models.
+ * Applies a small retry limit (1) and backoff (500ms) for 503 high-demand errors,
+ * avoids repeating 429 quota exhaustion errors, and returns iterator + firstChunk.
+ */
+async function streamWithModelFallback(
+  makeStreamCall: (model: string) => Promise<AsyncIterable<any>>,
+  preferredModel: string = 'gemini-3.1-flash-lite'
+): Promise<{
+  firstChunk: any | null;
+  iterator: AsyncIterator<any>;
+  usedModel: string;
+}> {
+  const initialModel = mapToSdkModel(
+    ALLOWED_MODELS.includes(preferredModel) ? preferredModel : 'gemini-3.1-flash-lite'
+  );
+
+  const sequence: string[] = [initialModel];
+  if (initialModel === 'gemini-3.1-flash-lite') {
+    sequence.push('gemini-flash-latest', 'gemini-3.8-flash');
+  } else if (initialModel === 'gemini-3.8-flash') {
+    sequence.push('gemini-3.1-flash-lite', 'gemini-flash-latest');
+  } else {
+    sequence.push('gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash');
+  }
+
+  const candidates = Array.from(new Set(sequence));
+  let lastError: any = null;
+  let lastErrorInfo: GeminiErrorInfo | null = null;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const model = candidates[i];
+    const nextModel = candidates[i + 1];
+
+    const MAX_TEMPORARY_RETRIES = 1;
+    let attempt = 0;
+
+    while (attempt <= MAX_TEMPORARY_RETRIES) {
+      attempt++;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error(`Timeout connecting to model "${model}" after 14000ms`)),
+            14000
+          );
+        });
+
+        const callPromise = (async () => {
+          const responseStream = await makeStreamCall(model);
+          const iterator = responseStream[Symbol.asyncIterator]();
+          const firstResult = await iterator.next();
+          return { responseStream, iterator, firstResult };
+        })();
+
+        const { iterator, firstResult } = await Promise.race([callPromise, timeoutPromise]);
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+
+        if (i > 0) {
+          console.info(`[Gemini Stream Fallback] Successfully connected to fallback model "${model}".`);
+        }
+
+        return {
+          firstChunk: firstResult.done ? null : firstResult.value,
+          iterator,
+          usedModel: model,
+        };
+      } catch (err: any) {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+        lastError = err;
+        const errorInfo = parseGeminiError(err);
+        lastErrorInfo = errorInfo;
+
+        if (errorInfo.is429QuotaExhausted) {
+          console.warn(
+            `[Gemini Stream Fallback] Model "${model}" hit quota limit / 429 RESOURCE_EXHAUSTED (${errorInfo.message}). Skipping repeat attempts on this model.`
+          );
+          if (nextModel) {
+            console.info(`[Gemini Stream Fallback] Attempting alternative fallback candidate "${nextModel}"...`);
+          }
+          break; // Do not retry 429; move to next candidate
+        } else if (errorInfo.is503HighDemand) {
+          if (attempt <= MAX_TEMPORARY_RETRIES) {
+            console.warn(
+              `[Gemini Stream Fallback] Model "${model}" failed with 503 high-demand error (${errorInfo.message}). Applying 500ms backoff before retry (attempt ${attempt}/${MAX_TEMPORARY_RETRIES + 1})...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            continue;
+          } else {
+            console.warn(
+              `[Gemini Stream Fallback] Model "${model}" 503 retry limit reached.` +
+              (nextModel ? ` Automatically switching to next candidate "${nextModel}"...` : ' All fallback models exhausted.')
+            );
+            break;
+          }
+        } else {
+          console.warn(
+            `[Gemini Stream Fallback] Model "${model}" failed [HTTP ${errorInfo.httpStatus || 'N/A'}] (${errorInfo.message}).` +
+            (nextModel ? ` Seamlessly switching to next candidate "${nextModel}"...` : ' All candidates exhausted.')
+          );
+          break;
+        }
+      }
+    }
+  }
+
+  const errToThrow = lastError || new Error('All model candidates failed to start streaming.');
+  (errToThrow as any).lastErrorInfo = lastErrorInfo;
+  throw errToThrow;
 }
 
 // Curated high-yield syllabus explanations when all external API quotas are exhausted
@@ -830,7 +1165,7 @@ app.post('/api/ask', async (req, res) => {
   const { subject, question, file, selectedModel } = req.body;
   const activeModel = typeof selectedModel === 'string' && ALLOWED_MODELS.includes(selectedModel)
     ? selectedModel
-    : 'gemini-3.8-flash';
+    : 'gemini-3.1-flash-lite';
 
   const userQuestion = typeof question === 'string' ? question.trim() : '';
   const hasFile = file && typeof file === 'object' && typeof file.data === 'string' && file.data.length > 0;
@@ -885,6 +1220,22 @@ Example output format for matrix equations:
 
 ⎡  -1    2 ⎤   ⎡ x ⎤   ⎡ 0 ⎤
 ⎣   1   -2 ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
+
+ASCII CIRCUIT SCHEMATIC ENGINE (FOR CIRCUITS, KCL, KVL, VOLTAGE DIVIDERS, RESISTORS, DIODES, RECTIFIERS, OR OP-AMPS):
+- When a student asks about KCL, KVL, voltage dividers, resistors, diodes, rectifiers, or operational amplifiers, draw a clear, text-based ASCII circuit schematic before explaining the calculations whenever a schematic is appropriate.
+- Format the diagram in monospaced text (enclose within a \`\`\`circuit or \`\`\`text code block) so spacing, lines, and component alignment remain perfectly readable on both desktop and mobile screens.
+- Use standard characters and labels:
+  - Voltage sources: (V1), (Vs), + and -
+  - Resistors: [R1], [R2], [RL]
+  - Diodes / Rectifiers: [D1] (Anode ->| Cathode)
+  - Ground: GND
+  - Connecting lines & nodes: +, -, |, ---, (Node A), (Vx)
+  - Current directions: -> i1, -> i2
+- Label voltage sources, resistors, ground connections, current directions, and relevant node voltages where applicable.
+- Ensure the diagram is electrically consistent with the question and does not misrepresent the circuit connections.
+- If the circuit information is insufficient, ask for clarification instead of inventing missing component values or connections.
+- Follow the diagram with numbered, beginner-friendly mathematical steps, formulas, substitutions, calculations, and the final answer with units (V, mA, A, Ω, kΩ).
+- Apply these instructions only when relevant to circuit-related questions. For other subjects (like C programming or linear algebra), retain the existing response style.
 
 Your explanation style must be:
 - Brief, direct, and concise: Skip conversational filler and jump straight into the solution.
@@ -942,12 +1293,82 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
   }
   contentsPayload.push(promptText);
 
-  // Attempt generation with multi-model failover
+  const wantsStream = req.body.stream !== false && !req.headers.accept?.includes('application/json');
+
+  // Handle standard JSON response for synchronous requests (e.g. practice problems, intuitive explanations)
+  if (!wantsStream) {
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const response = await generateWithModelFallback(
+          (model) =>
+            ai.models.generateContent({
+              model,
+              contents: contentsPayload,
+              config: {
+                systemInstruction,
+                temperature: 0.7,
+              },
+            }),
+          activeModel
+        );
+
+        return res.json({
+          answer: response.text || '',
+          model: response.usedModel || activeModel,
+        });
+      } catch (err: any) {
+        const errorInfo = err?.lastErrorInfo || parseGeminiError(err);
+        console.warn('Gemini JSON generation error or unavailable. Delivering curated curriculum answer:', errorInfo.message);
+      }
+    }
+
+    const fallbackAnswer = getCuratedExplanation(selectedSubject, userQuestion || 'matrix');
+    return res.json({
+      answer: fallbackAnswer,
+      model: 'Curated ECE Engine',
+    });
+  }
+
+  // Set Server-Sent Events headers for real-time progressive response delivery
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  let clientDisconnected = false;
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      clientDisconnected = true;
+    }
+  });
+
+  let hasStartedStreamingToClient = false;
+
+  const sendChunk = (text: string) => {
+    if (!clientDisconnected && !res.writableEnded) {
+      hasStartedStreamingToClient = true;
+      res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`);
+      (res as any).flush?.();
+    }
+  };
+
+  const sendDone = (modelName: string) => {
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ done: true, model: modelName })}\n\n`);
+      (res as any).flush?.();
+      res.end();
+    }
+  };
+
+  let lastErrorInfo: GeminiErrorInfo | null = null;
+
+  // Attempt streaming generation with multi-model failover
   if (process.env.GEMINI_API_KEY) {
     try {
-      const response = await generateWithModelFallback(
+      const { firstChunk, iterator, usedModel } = await streamWithModelFallback(
         (model) =>
-          ai.models.generateContent({
+          ai.models.generateContentStream({
             model,
             contents: contentsPayload,
             config: {
@@ -958,16 +1379,61 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
         activeModel
       );
 
-      const answer = response.text || 'No response generated. Please try again.';
-      return res.json({ answer });
-    } catch (err: any) {
-      console.warn('All Gemini models rate-limited or unavailable. Delivering curated curriculum answer:', err?.message);
+      // Emit first chunk if available
+      if (firstChunk && firstChunk.text) {
+        sendChunk(firstChunk.text);
+      }
+
+      // Stream subsequent chunks progressively
+      try {
+        let item = await iterator.next();
+        while (!item.done && !clientDisconnected) {
+          if (item.value && item.value.text) {
+            sendChunk(item.value.text);
+          }
+          item = await iterator.next();
+        }
+
+        sendDone(usedModel);
+        return;
+      } catch (midStreamError: any) {
+        console.warn('[Gemini Mid-Stream Error]:', midStreamError?.message || midStreamError);
+        // Requirement 7: Errors after streaming has started must be handled safely
+        // without attempting to send a second response or concatenating another answer
+        if (!clientDisconnected && hasStartedStreamingToClient) {
+          sendDone(usedModel);
+        }
+        return;
+      }
+    } catch (beforeStreamError: any) {
+      lastErrorInfo = beforeStreamError?.lastErrorInfo || parseGeminiError(beforeStreamError);
+      console.warn(
+        `[Gemini Stream All Models Failed]: (HTTP ${lastErrorInfo?.httpStatus || 'N/A'}: ${lastErrorInfo?.message}). Delivering student-friendly curriculum answer.`
+      );
     }
   }
 
-  // Graceful curriculum fallback so the user always receives a complete, high-quality answer
-  const fallbackAnswer = getCuratedExplanation(selectedSubject, userQuestion || 'matrix');
-  return res.json({ answer: fallbackAnswer });
+  // Graceful curriculum fallback delivered progressively over SSE if streaming never began
+  if (!clientDisconnected && !hasStartedStreamingToClient) {
+    const studentNotice = lastErrorInfo?.is429QuotaExhausted
+      ? `> **Notice**: The live AI engine is currently at API quota capacity. We've automatically loaded the verified syllabus curriculum answer for your question below so your study session continues uninterrupted.\n\n---\n\n`
+      : `> **Notice**: The live AI engine is experiencing high demand. Showing the verified first-year ECE curriculum answer below:\n\n---\n\n`;
+
+    sendChunk(studentNotice);
+
+    const fallbackAnswer = getCuratedExplanation(selectedSubject, userQuestion || 'matrix');
+    const slices = fallbackAnswer.match(/[\s\S]{1,120}/g) || [fallbackAnswer];
+    for (const slice of slices) {
+      if (clientDisconnected) break;
+      sendChunk(slice);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    sendDone('Curated ECE Engine');
+  }
+
+  if (!res.writableEnded) {
+    res.end();
+  }
 });
 
 // Generate Quiz Questions endpoint with count and difficulty options
@@ -975,7 +1441,7 @@ app.post('/api/quiz', async (req, res) => {
   const { subject, topic, difficulty, count, selectedModel } = req.body;
   const activeModel = typeof selectedModel === 'string' && ALLOWED_MODELS.includes(selectedModel)
     ? selectedModel
-    : 'gemini-3.8-flash';
+    : 'gemini-3.1-flash-lite';
   const selectedSubject = subject || 'Basic Electronics';
   const numQuestions = Math.min(Math.max(Number(count) || 3, 1), 10);
   const selectedDifficulty = difficulty && typeof difficulty === 'string' && difficulty !== 'All' ? difficulty : undefined;

@@ -20,9 +20,20 @@ First-year engineering curricula present a notoriously steep learning curve. Stu
 - **Interactive Knowledge Assessment**:
   - Dynamic conceptual quizzes with configurable difficulty (**Beginner**, **Core Concept**, **Exam Level**) and length (3, 5, or 10 questions).
   - Interactive immediate grading with distractor rationale explanations and retry mode for missed questions.
+- **Generate Similar Practice Problem**:
+  - Automatically synthesizes a new practice problem on the same subject and difficulty with fresh circuit values and parameters.
+  - Features an interactive collapsible **"Show Step-by-Step Solution"** toggle keeping the derivation hidden until the student is ready to self-evaluate.
+- **Explain Intuitively Quick-Action**:
+  - One-click transformation of complex technical explanations into accessible two-paragraph physical analogies before presenting formal mathematical derivations.
+- **ASCII Circuit Schematic Engine**:
+  - Automatically diagrams electrical circuits (voltage dividers, KCL/KVL loops, op-amps, rectifiers, and diode models) in clean, text-based monospaced ASCII before calculating numbered steps.
 - **Adaptive Student Analytics & Revision**:
   - Tracks study streaks, question accuracy, and subject mastery locally.
   - Automatically identifies weak topics and recommends targeted revision sessions.
+- **Daily Study Goals & Session Tracking**:
+  - Configurable daily study targets for problems solved (AI questions asked and generated practice exercises) and quiz questions answered.
+  - Quick presets (Casual, Balanced, Exam Prep) and custom daily targets with real-time progress bars, live Navbar status badges, and manual adjustment logging.
+  - Automatic daily rollover and streak synchronization with local storage persistence.
 
 ---
 
@@ -68,6 +79,20 @@ Python list-style brackets (`[[a, b], [c, d]]`) and row commas are strictly disa
 - Matrix entries are padded with spaces so vertical columns align uniformly.
 - Mathematical signs inside matrix entries have explicit padding (e.g., `(4 - 5)` instead of `4-5`) to prevent visually merging numbers.
 
+### 6. ASCII Circuit Schematic Engine & Dedicated Component
+For electrical circuit analysis (KCL, KVL, voltage dividers, resistors, diodes, rectifiers, and operational amplifiers), the system produces text-based ASCII circuit schematics:
+- **Standard Component Indicators**:
+  - Resistors: `[R1]`, `[R2]`, `[RL]`
+  - DC/AC Sources: `(V1)`, `(Vs)`, `(Is)`
+  - Ground: `GND`, `_|_`
+  - Diodes & Op-Amps: `[D1]`, `[Op-Amp]`, `|>`
+  - Connections & Nodes: `+---`, `---|`, `Node A`, `(Va)`, `-> i1`
+- **Dedicated UI Component (`CircuitRenderer.tsx`)**:
+  - **Pre-Tag & Schematic Detection**: Automatically detects HTML `<pre>` tags (`<pre>...</pre>`, `<pre class="circuit">`), markdown code fences (```circuit / ```text), and raw text schematics.
+  - **Strict Monospace Grid**: Enforces `ui-monospace`, `JetBrains Mono`, `font-variant-ligatures: none`, and `font-feature-settings: "liga" 0` to prevent font kerning or ligatures from shifting vertical wires or ASCII brackets.
+  - **Multi-Theme High-Contrast Modes**: Supports **Auto** (synced with app light/dark theme), **High-Contrast Paper** (crisp ink on clean white/light surface), **CAD Blueprint** (cyan/emerald on midnight obsidian), **Phosphor CRT** (luminous green terminal), and **Amber CRT** for optimal readability in both light and dark environments.
+  - **Interactive Controls**: Multi-level zoom (+, -, reset to 100%), fullscreen modal inspection, one-click copy with toast feedback, and auto-detected component chips (resistors, voltage/current sources, diodes, ground, nodes).
+
 ---
 
 ## 3. Model Infrastructure & Fallback Architecture
@@ -83,8 +108,11 @@ Users can dynamically switch AI reasoning modes in the top navigation bar depend
 
 The selected model mode is saved to browser `localStorage` (`ece_study_model`) and transmitted with every backend request.
 
-### Automatic Multi-Model Failover Chain
-To prevent disruptions caused by API rate limits (`RESOURCE_EXHAUSTED` / `429`), temporary unavailability, or quota spikes, the backend implements an automated failover chain:
+### Automatic Multi-Model Failover Chain & 503 Resilience
+To prevent disruptions caused by API capacity spikes (`503 UNAVAILABLE` / "This model is currently experiencing high demand"), rate limits, or transient quota constraints:
+1. **503 Transient Spike Recovery**: When a temporary 503 surge is detected, the engine applies a rapid 350ms jitter pause before seamless retry.
+2. **Instant Failover to `gemini-3.1-flash-lite`**: If the primary model remains constrained, requests immediately route to `gemini-3.1-flash-lite` (which runs on a high-throughput pool with near-zero queueing) followed by `gemini-flash-latest`.
+3. **Curriculum Engine Guarantee**: If all cloud endpoints are unreachable or unconfigured, the system automatically falls back to curated first-year syllabus solutions and quizzes, ensuring zero downtime.
 
 ```text
 Selected Model (gemini-3.8-flash / gemini-3.1-flash-lite / gemini-3.1-pro)

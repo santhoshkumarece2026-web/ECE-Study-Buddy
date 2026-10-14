@@ -109,3 +109,15 @@ export interface AIModelMode {
   speed: string;
   reasoning: string;
 }
+
+export interface DailyGoalsConfig {
+  targetProblems: number;
+  targetQuizQuestions: number;
+}
+
+export interface DailyGoalsProgress {
+  date: string; // YYYY-MM-DD
+  problemsSolved: number;
+  quizQuestionsAnswered: number;
+  lastUpdated: number;
+}
