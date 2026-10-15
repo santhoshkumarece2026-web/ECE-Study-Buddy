@@ -25,6 +25,7 @@ import { StudyHistoryModal } from './components/StudyHistoryModal';
 import { BookmarksModal } from './components/BookmarksModal';
 import { ProgressModal } from './components/ProgressModal';
 import { DailyGoalsModal } from './components/DailyGoalsModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
 import { WeakTopicsCard } from './components/WeakTopicsCard';
 import { EceLogo } from './components/EceLogo';
 import { 
@@ -48,6 +49,9 @@ import {
   ChevronUp,
   RefreshCw,
   Target,
+  Trophy,
+  SlidersHorizontal,
+  Flame,
   Image as ImageIcon 
 } from 'lucide-react';
 
@@ -220,6 +224,7 @@ export default function App() {
   const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState<boolean>(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState<boolean>(false);
   const [isDailyGoalsModalOpen, setIsDailyGoalsModalOpen] = useState<boolean>(false);
+  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState<boolean>(false);
 
   // Daily Study Goals Configuration
   const [dailyGoalsConfig, setDailyGoalsConfig] = useState<DailyGoalsConfig>(() => {
@@ -981,6 +986,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
         onOpenBookmarks={() => setIsBookmarksModalOpen(true)}
         onOpenProgress={() => setIsProgressModalOpen(true)}
         onOpenDailyGoals={() => setIsDailyGoalsModalOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardModalOpen(true)}
         dailyGoalsSummary={dailyGoalsSummary}
         historyCount={history.length}
         bookmarksCount={bookmarks.length}
@@ -1048,6 +1054,15 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                 className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center"
               >
                 Analytics
+              </button>
+              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+              <button
+                onClick={() => setIsLeaderboardModalOpen(true)}
+                className="text-amber-600 dark:text-amber-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center gap-1"
+                title="View Quiz Leaderboard & Top Scores"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                <span>Leaderboard</span>
               </button>
             </div>
           </div>
@@ -1252,8 +1267,33 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   className="w-full py-3 px-4 min-h-[46px] rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>{isGeneratingQuiz ? 'Creating Quiz...' : `Quiz (${quizLength} Qs)`}</span>
+                  <span>{isGeneratingQuiz ? 'Creating Quiz...' : `Quiz (${quizLength} Qs • ${quizDifficulty})`}</span>
                 </button>
+              </div>
+
+              {/* Pre-Quiz Difficulty Selector: Allows toggling difficulty before generating */}
+              <div className="pt-1.5 flex items-center justify-between gap-2 text-xs">
+                <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Difficulty:</span>
+                </span>
+                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+                  {(['Beginner', 'Core Concept', 'Exam Level'] as QuizDifficulty[]).map((diff) => (
+                    <button
+                      key={diff}
+                      type="button"
+                      onClick={() => setQuizDifficulty(diff)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                        quizDifficulty === diff
+                          ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      title={`Set difficulty to ${diff} before generating`}
+                    >
+                      {diff === 'Exam Level' ? 'Exam 🔥' : diff === 'Core Concept' ? 'Core' : 'Beginner'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Active AI Engine Indicator */}
@@ -1270,8 +1310,8 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                 </span>
               </div>
 
-              {/* Sample Questions */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 w-full min-w-0">
+              {/* Sample Questions (Animates smoothly with subtle slide-in when selectedSubjectId changes) */}
+              <div key={`sample-${selectedSubjectId}`} className="pt-2 border-t border-slate-100 dark:border-slate-800/80 w-full min-w-0 animate-subject-slide-in">
                 <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
                   Frequent First-Year Exam Questions:
                 </span>
@@ -1291,8 +1331,8 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
             </div>
           </div>
 
-          {/* Right Column: Output Console / Quiz Canvas (lg: 7 cols) */}
-          <div className="lg:col-span-7 space-y-4 w-full min-w-0">
+          {/* Right Column: Output Console / Quiz Canvas (Animates smoothly with subtle slide-in when selectedSubjectId changes) */}
+          <div key={`workspace-${selectedSubjectId}`} className="lg:col-span-7 space-y-4 w-full min-w-0 animate-subject-slide-in">
             
             {/* Console Navigation Header if response exists */}
             {(explanation || quizQuestions) && !isGeneratingQuiz && (
@@ -1696,15 +1736,14 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   selectedLength={quizLength}
                   onChangeDifficulty={(d) => {
                     setQuizDifficulty(d);
-                    handleGenerateQuiz(d, quizLength);
                   }}
                   onChangeLength={(l) => {
                     setQuizLength(l);
-                    handleGenerateQuiz(quizDifficulty, l);
                   }}
                   onGenerateNew={(d, l) => handleGenerateQuiz(d || quizDifficulty, l || quizLength)}
                   isGeneratingNew={isGeneratingQuiz}
                   onRecordAttempt={handleRecordQuizAttempt}
+                  onOpenLeaderboard={() => setIsLeaderboardModalOpen(true)}
                 />
               </div>
             )}
@@ -1858,6 +1897,19 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
         }}
         onNavigateToAsk={() => {
           setActiveView('explanation');
+        }}
+      />
+
+      {/* Quiz Leaderboard & Top Scores Modal */}
+      <LeaderboardModal
+        isOpen={isLeaderboardModalOpen}
+        onClose={() => setIsLeaderboardModalOpen(false)}
+        quizHistory={quizHistory}
+        onStartQuiz={(difficulty) => {
+          const diff = difficulty || quizDifficulty;
+          setQuizDifficulty(diff);
+          setActiveView('quiz');
+          handleGenerateQuiz(diff, quizLength);
         }}
       />
     </div>

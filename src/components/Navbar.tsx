@@ -14,7 +14,8 @@ import {
   Check,
   Menu,
   X,
-  Target
+  Target,
+  Trophy
 } from 'lucide-react';
 import { AIModelId } from '../types';
 import { EceLogo } from './EceLogo';
@@ -61,6 +62,7 @@ interface NavbarProps {
   onOpenBookmarks: () => void;
   onOpenProgress: () => void;
   onOpenDailyGoals: () => void;
+  onOpenLeaderboard: () => void;
   dailyGoalsSummary?: {
     isAllCompleted: boolean;
     problemsSolved: number;
@@ -84,6 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBookmarks,
   onOpenProgress,
   onOpenDailyGoals,
+  onOpenLeaderboard,
   dailyGoalsSummary,
   historyCount,
   bookmarksCount,
@@ -275,6 +278,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
+            onClick={onOpenLeaderboard}
+            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5 text-amber-700 dark:text-amber-400 font-semibold"
+            title="Quiz Leaderboard & High Scores"
+          >
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span>Leaderboard</span>
+          </button>
+
+          <button
             onClick={onOpenHistory}
             className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
           >
@@ -404,6 +416,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {historyCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => {
+                onOpenLeaderboard();
+                setIsMobileMenuOpen(false);
+              }}
+              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 active:bg-amber-100 cursor-pointer min-h-[44px]"
+            >
+              <span className="flex items-center gap-2 font-semibold">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span>Quiz Leaderboard & Rankings</span>
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                Top Scores
+              </span>
             </button>
 
             {/* Mobile Drawer Theme Toggle */}

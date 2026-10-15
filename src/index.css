@@ -101,3 +101,28 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
 }
+
+/* Subtle slide-in animation when switching subjects */
+@keyframes subjectSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-subject-slide-in {
+  animation: subjectSlideIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-subject-slide-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+

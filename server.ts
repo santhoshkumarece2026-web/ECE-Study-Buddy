@@ -842,7 +842,7 @@ async function streamWithModelFallback(
     const model = candidates[i];
     const nextModel = candidates[i + 1];
 
-    const MAX_TEMPORARY_RETRIES = 1;
+    const MAX_TEMPORARY_RETRIES = 0;
     let attempt = 0;
 
     while (attempt <= MAX_TEMPORARY_RETRIES) {
@@ -851,8 +851,8 @@ async function streamWithModelFallback(
       try {
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutHandle = setTimeout(
-            () => reject(new Error(`Timeout connecting to model "${model}" after 14000ms`)),
-            14000
+            () => reject(new Error(`Timeout connecting to model "${model}" after 8000ms`)),
+            8000
           );
         });
 
@@ -1179,9 +1179,11 @@ app.post('/api/ask', async (req, res) => {
   const systemInstruction = `You are "ECE Study Buddy", an expert, friendly, and encouraging senior engineering mentor dedicated to first-year undergraduate engineering students.
 The student is asking about: "${selectedSubject}".
 
-RESPONSE SPEED OPTIMIZATION:
-- Keep explanations brief, concise, and direct.
-- Skip conversational filler and jump straight into the step-by-step mathematical solution.
+RESPONSE SPEED & CONCISENESS:
+- Keep explanations brief, concise, direct, and beginner-friendly for first-year ECE students.
+- Skip conversational filler and jump straight into the explanation.
+- Do NOT provide multiple separate explanations or duplicate worked examples. Provide ONE unified, clear step-by-step breakdown.
+- If a worked example or numerical calculation is helpful, integrate it directly into the step-by-step steps rather than adding a separate repetitive worked example section.
 
 FORMATTING & HEADINGS:
 - NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics.
@@ -1222,62 +1224,37 @@ Example output format for matrix equations:
 ⎣   1   -2 ⎦ × ⎣ y ⎦ = ⎣ 0 ⎦
 
 ASCII CIRCUIT SCHEMATIC ENGINE (FOR CIRCUITS, KCL, KVL, VOLTAGE DIVIDERS, RESISTORS, DIODES, RECTIFIERS, OR OP-AMPS):
-- When a student asks about KCL, KVL, voltage dividers, resistors, diodes, rectifiers, or operational amplifiers, draw a clear, text-based ASCII circuit schematic before explaining the calculations whenever a schematic is appropriate.
-- Format the diagram in monospaced text (enclose within a \`\`\`circuit or \`\`\`text code block) so spacing, lines, and component alignment remain perfectly readable on both desktop and mobile screens.
-- Use standard characters and labels:
-  - Voltage sources: (V1), (Vs), + and -
-  - Resistors: [R1], [R2], [RL]
-  - Diodes / Rectifiers: [D1] (Anode ->| Cathode)
-  - Ground: GND
-  - Connecting lines & nodes: +, -, |, ---, (Node A), (Vx)
-  - Current directions: -> i1, -> i2
-- Label voltage sources, resistors, ground connections, current directions, and relevant node voltages where applicable.
-- Ensure the diagram is electrically consistent with the question and does not misrepresent the circuit connections.
-- If the circuit information is insufficient, ask for clarification instead of inventing missing component values or connections.
-- Follow the diagram with numbered, beginner-friendly mathematical steps, formulas, substitutions, calculations, and the final answer with units (V, mA, A, Ω, kΩ).
-- Apply these instructions only when relevant to circuit-related questions. For other subjects (like C programming or linear algebra), retain the existing response style.
+- When a student asks about KCL, KVL, voltage dividers, resistors, diodes, rectifiers, or operational amplifiers, draw a clear, compact text-based ASCII circuit schematic (under 6 lines) in a \`\`\`text code block before explaining the calculations whenever appropriate.
+- Format the diagram in monospaced text so spacing, lines, and component alignment remain perfectly readable on both desktop and mobile screens.
+- Use standard labels: (Vs), [R1], [D1], GND, -> i1.
+- Follow the diagram with numbered, beginner-friendly mathematical steps, formulas, substitutions, and the final answer with units (V, mA, A, Ω, kΩ).
 
-Your explanation style must be:
-- Brief, direct, and concise: Skip conversational filler and jump straight into the solution.
-- Structured with bold or UPPERCASE labels on a new line (NEVER use # or ## headings):
-  **QUICK CONCEPTUAL SUMMARY:** (1-2 sentences)
-  **TRANSCRIBED PROBLEM & EQUATIONS:** (if an image or document was uploaded, first transcribe any detected handwritten or printed equations, matrices, circuits, or diagrams clearly; note any blurry/partially cut-off areas)
-  **EVERYDAY ANALOGY / INTUITION:**
-  **STEP-BY-STEP SOLUTION:** (with clearly defined terms & formulas formatted with strict Unicode math rules above)
-  **PRACTICAL WORKED EXAMPLE:** (with parallel aligned bracket walls for matrices, plain text units)
-  **COMMON EXAM TRAP & PITFALL:**`;
+STRUCTURE (Clear, beginner-friendly, and concise):
+- **QUICK CONCEPTUAL SUMMARY:** (1-2 sentences defining the core concept)
+- **TRANSCRIBED PROBLEM & EQUATIONS:** (Only if an image or document was uploaded)
+- **EVERYDAY ANALOGY / INTUITION:** (1 concise sentence providing practical intuition)
+- **STEP-BY-STEP SOLUTION:** (Numbered, beginner-friendly steps with core formulas, terms, and numerical example if applicable)
+- **COMMON EXAM TRAP & PITFALL:** (1 key mistake or edge case first-year students must avoid on exams)`;
 
   let promptText = '';
   if (userQuestion && hasFile) {
     promptText = `Student uploaded a file (${file.name || 'image/document'}) with question in ${selectedSubject}:
 "${userQuestion}"
 
-RESPONSE SPEED & FORMATTING REQUIREMENTS:
-- Keep explanation brief, concise, and direct. Skip conversational filler.
-- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line.
-- Analyze and extract all mathematical text, matrices, equations, and diagrams from the uploaded file.
-- Read both the uploaded file and the accompanying question to address the exact inquiry.
-- If the image is blurry or partially cut off, clearly state what part is unreadable and solve as much of the visible problem as possible.
-- Transcribe any detected handwritten or printed equations clearly before providing step-by-step solutions formatted in plain text.
-- Strictly adhere to plain-text Unicode math formatting (no LaTeX, no $ or $$, explicit ×, ∀, and multi-line Unicode bracket walls ⎡, ⎣, ⎤, ⎦).`;
+Analyze the file and provide a direct, beginner-friendly, step-by-step solution following the Unicode formatting rules.`;
   } else if (hasFile) {
     promptText = `Student uploaded a file (${file.name || 'image/document'}) in ${selectedSubject}.
-RESPONSE SPEED & FORMATTING REQUIREMENTS:
-- Keep explanation brief, concise, and direct. Skip conversational filler.
-- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line.
-- Analyze and extract all mathematical text, matrices, equations, and diagrams from the uploaded file.
-- If the image is blurry or partially cut off, clearly state what part is unreadable and solve as much of the visible problem as possible.
-- Transcribe any detected handwritten or printed equations clearly before providing step-by-step solutions formatted in plain text.
-- Strictly adhere to plain-text Unicode math formatting (no LaTeX, no $ or $$, explicit ×, ∀, and multi-line Unicode bracket walls ⎡, ⎣, ⎤, ⎦).`;
+
+Analyze the file and provide a direct, beginner-friendly, step-by-step solution following the Unicode formatting rules.`;
   } else {
     promptText = `Student Question in ${selectedSubject}:
 "${userQuestion}"
 
-RESPONSE SPEED & FORMATTING REQUIREMENTS:
-- Keep explanation brief, concise, and direct. Skip conversational filler.
-- NEVER use Markdown heading symbols (#, ##, ###, ####) at the start of lines or subtopics. Use simple bold text or UPPERCASE labels on a new line (e.g. "**The 2-Step Recipe:**").
-- Strictly adhere to mathematical formatting rules: Never use LaTeX or dollar signs ($). Use standard Unicode math symbols, explicit × for multiplication, ∀ for general conditions, and multi-line Unicode bracket walls (⎡, ⎣, ⎤, ⎦) with parallel alignment for matrices. Never use python-style list brackets.`;
+Provide a direct, beginner-friendly, step-by-step explanation following the Unicode formatting rules.`;
   }
+
+  const requestStartTime = Date.now();
+  let firstChunkTimeMs: number | null = null;
 
   // Construct multimodal contents array for Gemini
   const contentsPayload: any[] = [];
@@ -1306,7 +1283,7 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
               contents: contentsPayload,
               config: {
                 systemInstruction,
-                temperature: 0.7,
+                temperature: 0.3,
               },
             }),
           activeModel
@@ -1353,9 +1330,9 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
     }
   };
 
-  const sendDone = (modelName: string) => {
+  const sendDone = (modelName: string, timing?: { ttftMs: number; totalTimeMs: number }) => {
     if (!res.writableEnded) {
-      res.write(`data: ${JSON.stringify({ done: true, model: modelName })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true, model: modelName, ...(timing || {}) })}\n\n`);
       (res as any).flush?.();
       res.end();
     }
@@ -1373,14 +1350,15 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
             contents: contentsPayload,
             config: {
               systemInstruction,
-              temperature: 0.7,
+              temperature: 0.3,
             },
           }),
         activeModel
       );
 
-      // Emit first chunk if available
+      // Emit first chunk if available and track TTFT
       if (firstChunk && firstChunk.text) {
+        firstChunkTimeMs = Date.now() - requestStartTime;
         sendChunk(firstChunk.text);
       }
 
@@ -1389,12 +1367,21 @@ RESPONSE SPEED & FORMATTING REQUIREMENTS:
         let item = await iterator.next();
         while (!item.done && !clientDisconnected) {
           if (item.value && item.value.text) {
+            if (firstChunkTimeMs === null) {
+              firstChunkTimeMs = Date.now() - requestStartTime;
+            }
             sendChunk(item.value.text);
           }
           item = await iterator.next();
         }
 
-        sendDone(usedModel);
+        const totalTimeMs = Date.now() - requestStartTime;
+        const ttftMs = firstChunkTimeMs ?? totalTimeMs;
+        console.info(
+          `[/api/ask] Streaming completed: TTFT = ${ttftMs}ms, Total = ${totalTimeMs}ms, Model = "${usedModel}"`
+        );
+
+        sendDone(usedModel, { ttftMs, totalTimeMs });
         return;
       } catch (midStreamError: any) {
         console.warn('[Gemini Mid-Stream Error]:', midStreamError?.message || midStreamError);
