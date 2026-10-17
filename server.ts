@@ -851,8 +851,8 @@ async function streamWithModelFallback(
       try {
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutHandle = setTimeout(
-            () => reject(new Error(`Timeout connecting to model "${model}" after 8000ms`)),
-            8000
+            () => reject(new Error(`Timeout connecting to model "${model}" after 15000ms`)),
+            15000
           );
         });
 

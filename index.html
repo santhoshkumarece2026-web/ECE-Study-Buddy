@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <meta name="theme-color" content="#0B1120" />
     <script>
       (function() {
         // Handle and ignore HMR WebSocket connection errors as specified by environment rules
@@ -55,13 +56,15 @@
       (function() {
         try {
           var saved = localStorage.getItem('ece_theme');
-          var isDark = saved === 'dark' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (isDark) {
+          var isLight = saved === 'light';
+          if (!isLight) {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');
           }
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

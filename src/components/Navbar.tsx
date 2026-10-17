@@ -8,7 +8,7 @@ import {
   Moon, 
   Flame, 
   Zap, 
-  Sparkles, 
+  SlidersHorizontal, 
   Brain, 
   ChevronDown, 
   Check,
@@ -28,9 +28,9 @@ export const MODEL_OPTIONS = [
     badge: 'Lite',
     description: 'Sub-second speed for quick questions, definitions & formulas',
     icon: Zap,
-    color: 'text-amber-500 dark:text-amber-400',
-    bgColor: 'bg-amber-50 dark:bg-amber-950/50',
-    borderColor: 'border-amber-200 dark:border-amber-800',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-950/40',
+    borderColor: 'border-amber-800/60',
   },
   {
     id: 'gemini-3.8-flash' as AIModelId,
@@ -38,10 +38,10 @@ export const MODEL_OPTIONS = [
     modelId: 'gemini-3.8-flash',
     badge: 'Default',
     description: 'Optimal balance of speed, multimodal file analysis & math derivations',
-    icon: Sparkles,
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/50',
-    borderColor: 'border-blue-200 dark:border-blue-800',
+    icon: SlidersHorizontal,
+    color: 'text-[#3B82F6]',
+    bgColor: 'bg-[#3B82F6]/10',
+    borderColor: 'border-[#3B82F6]/30',
   },
   {
     id: 'gemini-3.1-pro' as AIModelId,
@@ -50,9 +50,9 @@ export const MODEL_OPTIONS = [
     badge: 'Pro',
     description: 'Maximum depth & rigor for complex proofs and multi-step matrix math',
     icon: Brain,
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-50 dark:bg-purple-950/50',
-    borderColor: 'border-purple-200 dark:border-purple-800',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-950/40',
+    borderColor: 'border-purple-800/60',
   },
 ];
 
@@ -117,20 +117,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+    <header className="sticky top-0 z-40 w-full bg-[#0B1120]/95 backdrop-blur-md border-b border-[#2A3850] transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Zone 1: Professional ECE Study Buddy Branding */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
-          <div className="flex items-center justify-center p-0.5 rounded-xl bg-slate-900 border border-cyan-500/30 shadow-xs shrink-0">
-            <EceLogo size={34} className="w-8 h-8 sm:w-9 sm:h-9" />
-          </div>
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0">
+          <EceLogo size={34} className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" />
           <div className="flex flex-col min-w-0">
-            <span className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate leading-tight">
+            <span className="text-sm sm:text-base font-bold tracking-tight text-[#F1F5F9] truncate leading-tight">
               ECE Study Buddy
             </span>
-            <span className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden xs:inline-block leading-none truncate">
-              First-Year Engineering
+            <span className="text-[10px] sm:text-[11px] font-mono text-[#7F8DA3] hidden xs:inline-block leading-none truncate">
+              Engineering Console
             </span>
           </div>
         </div>
@@ -140,33 +138,33 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => setIsDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 min-h-[38px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700/90 text-xs font-medium text-slate-800 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            title={`Active Model: ${activeOption.name} (${activeOption.modelId})`}
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 min-h-[38px] rounded-lg border border-[#2A3850] bg-[#151F32] hover:bg-[#1B2940] hover:border-[#3B82F6]/50 text-xs font-medium text-[#F1F5F9] transition-colors shadow-2xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+            title={`Active Engine: ${activeOption.name} (${activeOption.modelId})`}
             aria-haspopup="listbox"
             aria-expanded={isDropdownOpen}
           >
             <ActiveIcon className={`w-3.5 h-3.5 ${activeOption.color} shrink-0`} />
             <div className="flex items-center gap-1">
-              <span className="font-semibold text-slate-900 dark:text-white text-xs">{activeOption.name}</span>
-              <span className="hidden md:inline text-[11px] font-mono text-slate-400 dark:text-slate-500">
+              <span className="font-semibold text-[#F1F5F9] text-xs">{activeOption.name}</span>
+              <span className="hidden md:inline text-[11px] font-mono text-[#7F8DA3]">
                 ({activeOption.modelId})
               </span>
             </div>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded hidden sm:inline ${activeOption.bgColor} ${activeOption.color} border ${activeOption.borderColor}`}>
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded hidden sm:inline ${activeOption.bgColor} ${activeOption.color} border ${activeOption.borderColor}`}>
               {activeOption.badge}
             </span>
-            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-150 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 text-[#7F8DA3] transition-transform duration-150 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Model Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 sm:left-auto sm:right-0 mt-2 w-72 sm:w-84 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1">
+            <div className="absolute right-0 sm:left-auto sm:right-0 mt-2 w-72 sm:w-80 rounded-xl bg-[#151F32] border border-[#2A3850] shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-2.5 py-1.5 border-b border-[#2A3850] mb-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    AI Model Engine
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#7F8DA3]">
+                    AI Computation Engine
                   </span>
-                  <span className="text-[10px] text-slate-400">Applies to Chat & Quiz</span>
+                  <span className="text-[10px] text-[#7F8DA3] font-mono">Chat & Quiz</span>
                 </div>
               </div>
 
@@ -183,8 +181,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className={`w-full text-left p-2.5 rounded-lg flex items-start gap-3 transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
+                        ? 'bg-[#1B2940] border border-[#3B82F6]'
+                        : 'hover:bg-[#1B2940]/60 border border-transparent'
                     }`}
                   >
                     <div className={`p-1.5 rounded-md mt-0.5 shrink-0 ${opt.bgColor} border ${opt.borderColor}`}>
@@ -192,26 +190,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        <span className="text-xs font-bold text-[#F1F5F9]">
                           {opt.name}
                         </span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                           isSelected 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'bg-[#3B82F6] text-white' 
+                            : 'bg-[#1B2940] text-[#A7B4C8] border border-[#2A3850]'
                         }`}>
                           {opt.badge}
                         </span>
                       </div>
-                      <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                      <div className="text-[11px] font-mono text-[#7F8DA3]">
                         {opt.modelId}
                       </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+                      <p className="text-[11px] text-[#A7B4C8] mt-1 leading-snug">
                         {opt.description}
                       </p>
                     </div>
                     {isSelected && (
-                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-1" />
+                      <Check className="w-4 h-4 text-[#3B82F6] shrink-0 mt-1" />
                     )}
                   </button>
                 );
@@ -221,30 +219,30 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-5 text-sm font-medium text-slate-600 dark:text-slate-400">
+        <nav className="hidden lg:flex items-center gap-4 text-xs font-medium text-[#A7B4C8]">
           <button
             onClick={onOpenFormulas}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer"
           >
-            <BookMarked className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>Formulas</span>
+            <BookMarked className="w-3.5 h-3.5 text-[#3B82F6]" />
+            <span>Reference Sheet</span>
           </button>
 
           <button
             onClick={onOpenDailyGoals}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer"
             title="Open Daily Study Goals"
           >
-            <Target className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <Target className="w-3.5 h-3.5 text-cyan-400" />
             <span>Daily Goals</span>
             {dailyGoalsSummary && (
-              <span className={`text-xs font-semibold px-1.5 py-0.2 rounded-md tabular-nums flex items-center gap-0.5 ${
+              <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md tabular-nums flex items-center gap-0.5 ${
                 dailyGoalsSummary.isAllCompleted
-                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
-                  : 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300'
+                  ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-800/60 font-bold'
+                  : 'bg-[#1B2940] text-cyan-300 border border-[#2A3850]'
               }`}>
                 {dailyGoalsSummary.isAllCompleted
-                  ? '✓ Done'
+                  ? 'Done ✓'
                   : `${dailyGoalsSummary.problemsSolved + dailyGoalsSummary.quizAnswered}/${dailyGoalsSummary.targetProblems + dailyGoalsSummary.targetQuiz}`}
               </span>
             )}
@@ -252,12 +250,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenBookmarks}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer"
           >
-            <Bookmark className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
             <span>Bookmarks</span>
             {bookmarksCount > 0 && (
-              <span className="text-xs font-semibold px-1.5 py-0.2 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 tabular-nums">
+              <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-[#1B2940] text-indigo-300 border border-[#2A3850] tabular-nums">
                 {bookmarksCount}
               </span>
             )}
@@ -265,13 +263,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenProgress}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer"
           >
-            <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Award className="w-3.5 h-3.5 text-emerald-400" />
             <span>Progress</span>
             {streakDays > 0 && (
-              <span className="text-xs font-bold px-1.5 py-0.2 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center gap-0.5 tabular-nums">
-                <Flame className="w-3 h-3 fill-amber-500" />
+              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-950/60 text-amber-400 border border-amber-800/60 flex items-center gap-0.5 tabular-nums">
+                <Flame className="w-3 h-3 fill-amber-400" />
                 <span>{streakDays}d</span>
               </span>
             )}
@@ -279,43 +277,43 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenLeaderboard}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5 text-amber-700 dark:text-amber-400 font-semibold"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer text-amber-400 font-semibold"
             title="Quiz Leaderboard & High Scores"
           >
-            <Trophy className="w-4 h-4 text-amber-500" />
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
             <span>Leaderboard</span>
           </button>
 
           <button
             onClick={onOpenHistory}
-            className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap cursor-pointer py-1.5"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:text-[#F1F5F9] hover:bg-[#151F32] transition-colors whitespace-nowrap cursor-pointer"
           >
-            <History className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <History className="w-3.5 h-3.5 text-[#7F8DA3]" />
             <span>History</span>
             {historyCount > 0 && (
-              <span className="text-xs font-semibold px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
+              <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-[#1B2940] text-[#A7B4C8] border border-[#2A3850] tabular-nums">
                 {historyCount}
               </span>
             )}
           </button>
         </nav>
 
-        {/* Right Section: Theme Toggle + Mobile Menu Trigger */}
+        {/* Right Section: Mobile Menu Trigger */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Quick theme toggle */}
           <button
             onClick={onToggleDarkMode}
-            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[#A7B4C8] hover:text-[#F1F5F9] hover:bg-[#151F32] border border-[#2A3850] transition-colors cursor-pointer"
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label="Toggle dark mode"
           >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#A7B4C8]" />}
           </button>
 
           {/* Mobile hamburger menu toggle */}
           <button
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            className="lg:hidden p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="lg:hidden p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-[#F1F5F9] hover:bg-[#151F32] border border-[#2A3850] transition-colors cursor-pointer"
             title="Open study navigation menu"
             aria-label="Toggle navigation menu"
           >
@@ -324,29 +322,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation (Clean, fully touch-friendly, no page horizontal overflow) */}
+      {/* Mobile Drawer Navigation (Cohesive Dark Theme) */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-slate-900/98 px-4 py-3 space-y-2 shadow-lg animate-in slide-in-from-top-2 duration-150">
+        <div className="lg:hidden border-t border-[#2A3850] bg-[#0B1120] px-4 py-3 space-y-2 shadow-xl animate-in slide-in-from-top-2 duration-150">
           <div className="grid grid-cols-2 gap-2 text-xs font-medium">
             <button
               onClick={() => {
                 onOpenDailyGoals();
                 setIsMobileMenuOpen(false);
               }}
-              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/40 dark:to-blue-950/40 border border-cyan-200/80 dark:border-cyan-800/80 text-slate-800 dark:text-slate-100 active:bg-cyan-100 cursor-pointer min-h-[44px]"
+              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-[#151F32] border border-[#2A3850] text-[#F1F5F9] active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
               <span className="flex items-center gap-2 font-semibold">
-                <Target className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <Target className="w-4 h-4 text-cyan-400" />
                 <span>Daily Study Goals</span>
               </span>
               {dailyGoalsSummary && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md tabular-nums ${
                   dailyGoalsSummary.isAllCompleted
                     ? 'bg-emerald-600 text-white'
                     : 'bg-cyan-600 text-white'
                 }`}>
                   {dailyGoalsSummary.isAllCompleted
-                    ? 'Target Met 🎉'
+                    ? 'Target Met ✓'
                     : `${dailyGoalsSummary.problemsSolved + dailyGoalsSummary.quizAnswered}/${dailyGoalsSummary.targetProblems + dailyGoalsSummary.targetQuiz} Done`}
                 </span>
               )}
@@ -357,10 +355,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenFormulas();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 active:bg-slate-100 cursor-pointer min-h-[44px]"
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-[#151F32] border border-[#2A3850] text-[#F1F5F9] active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
-              <BookMarked className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>Formulas</span>
+              <BookMarked className="w-4 h-4 text-[#3B82F6]" />
+              <span>Reference Sheet</span>
             </button>
 
             <button
@@ -368,14 +366,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenBookmarks();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 active:bg-slate-100 cursor-pointer min-h-[44px]"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-[#151F32] border border-[#2A3850] text-[#F1F5F9] active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
               <span className="flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <Bookmark className="w-4 h-4 text-indigo-400" />
                 <span>Bookmarks</span>
               </span>
               {bookmarksCount > 0 && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-600 text-white tabular-nums">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-600 text-white tabular-nums">
                   {bookmarksCount}
                 </span>
               )}
@@ -386,15 +384,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenProgress();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 active:bg-slate-100 cursor-pointer min-h-[44px]"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-[#151F32] border border-[#2A3850] text-[#F1F5F9] active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
               <span className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Award className="w-4 h-4 text-emerald-400" />
                 <span>Progress</span>
               </span>
               {streakDays > 0 && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500 text-white flex items-center gap-0.5 tabular-nums">
-                  <Flame className="w-3 h-3 fill-white" />
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 flex items-center gap-0.5 tabular-nums">
+                  <Flame className="w-3 h-3 fill-slate-950" />
                   <span>{streakDays}d</span>
                 </span>
               )}
@@ -405,14 +403,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenHistory();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 active:bg-slate-100 cursor-pointer min-h-[44px]"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-[#151F32] border border-[#2A3850] text-[#F1F5F9] active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
               <span className="flex items-center gap-2">
-                <History className="w-4 h-4 text-slate-500" />
+                <History className="w-4 h-4 text-[#7F8DA3]" />
                 <span>History</span>
               </span>
               {historyCount > 0 && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 tabular-nums">
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[#1B2940] text-[#A7B4C8] border border-[#2A3850] tabular-nums">
                   {historyCount}
                 </span>
               )}
@@ -423,30 +421,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenLeaderboard();
                 setIsMobileMenuOpen(false);
               }}
-              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 active:bg-amber-100 cursor-pointer min-h-[44px]"
+              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-[#151F32] border border-amber-800/60 text-amber-300 active:bg-[#1B2940] cursor-pointer min-h-[44px]"
             >
               <span className="flex items-center gap-2 font-semibold">
-                <Trophy className="w-4 h-4 text-amber-500" />
+                <Trophy className="w-4 h-4 text-amber-400" />
                 <span>Quiz Leaderboard & Rankings</span>
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-800/80">
                 Top Scores
-              </span>
-            </button>
-
-            {/* Mobile Drawer Theme Toggle */}
-            <button
-              onClick={() => {
-                onToggleDarkMode();
-              }}
-              className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 cursor-pointer min-h-[44px] transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
-                <span className="font-semibold">{darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
-              </span>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                {darkMode ? 'Dark Active' : 'Light Active'}
               </span>
             </button>
           </div>

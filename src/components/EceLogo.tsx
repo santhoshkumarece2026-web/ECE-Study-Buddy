@@ -3,64 +3,115 @@ import React from 'react';
 interface EceLogoProps {
   className?: string;
   size?: number;
+  showWordmark?: boolean;
 }
 
-export const EceLogo: React.FC<EceLogoProps> = ({ className = 'w-9 h-9', size = 36 }) => {
+export const EceLogo: React.FC<EceLogoProps> = ({ 
+  className = 'w-8 h-8', 
+  size = 32,
+  showWordmark = false
+}) => {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      fill="none"
-      width={size}
-      height={size}
-      className={className}
-      aria-label="ECE Study Buddy Logo"
-    >
-      <defs>
-        <linearGradient id="eceChipGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0f172a" />
-          <stop offset="100%" stopColor="#1e293b" />
-        </linearGradient>
-        <linearGradient id="eceNeonCyan" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="50%" stopColor="#06b6d4" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
-        <linearGradient id="eceCapGrad" x1="18" y1="20" x2="46" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#6366f1" />
-        </linearGradient>
-      </defs>
+    <div className="inline-flex items-center gap-2.5 select-none">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 64 64"
+        fill="none"
+        width={size}
+        height={size}
+        className={className}
+        aria-label="ECE Study Buddy Logo"
+      >
+        {/* Grounding Base Chip Carrier */}
+        <rect
+          x="4"
+          y="4"
+          width="56"
+          height="56"
+          rx="12"
+          fill="#151F32"
+          stroke="#2A3850"
+          strokeWidth="1.5"
+        />
 
-      {/* Silicon Chip Die Base */}
-      <rect x="8" y="8" width="48" height="48" rx="12" fill="url(#eceChipGrad)" stroke="url(#eceNeonCyan)" strokeWidth="2.2" />
+        {/* Subtle PCB Grid Guides */}
+        <path
+          d="M18 8v48 M32 8v48 M46 8v48 M8 18h48 M8 32h48 M8 46h48"
+          stroke="#1B2940"
+          strokeWidth="1"
+          strokeDasharray="2 3"
+          opacity="0.6"
+        />
 
-      {/* IC Pins */}
-      {/* Top */}
-      <path d="M22 3v5 M32 3v5 M42 3v5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-      {/* Bottom */}
-      <path d="M22 56v5 M32 56v5 M42 56v5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-      {/* Left */}
-      <path d="M3 22h5 M3 32h5 M3 42h5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-      {/* Right */}
-      <path d="M56 22h5 M56 32h5 M56 42h5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Corner IC Pad Terminals */}
+        <rect x="2" y="20" width="3" height="6" rx="1" fill="#3B82F6" />
+        <rect x="2" y="38" width="3" height="6" rx="1" fill="#3B82F6" />
+        <rect x="59" y="20" width="3" height="6" rx="1" fill="#3B82F6" />
+        <rect x="59" y="38" width="3" height="6" rx="1" fill="#3B82F6" />
+        <rect x="20" y="2" width="6" height="3" rx="1" fill="#3B82F6" />
+        <rect x="38" y="2" width="6" height="3" rx="1" fill="#3B82F6" />
+        <rect x="20" y="59" width="6" height="3" rx="1" fill="#3B82F6" />
+        <rect x="38" y="59" width="6" height="3" rx="1" fill="#3B82F6" />
 
-      {/* Corner Traces and Bus Nodes */}
-      <path d="M14 14h5v5 M50 14h-5v5 M14 50h5v-5 M50 50h-5v-5" stroke="#0ea5e9" strokeWidth="1.5" strokeLinecap="round" opacity="0.75" />
-      <circle cx="19" cy="19" r="1.5" fill="#38bdf8" />
-      <circle cx="45" cy="19" r="1.5" fill="#38bdf8" />
-      <circle cx="19" cy="45" r="1.5" fill="#38bdf8" />
-      <circle cx="45" cy="45" r="1.5" fill="#38bdf8" />
+        {/* Geometric 'E' Circuit Trace System */}
+        {/* Vertical Bus Spine */}
+        <path
+          d="M20 18v28"
+          stroke="#3B82F6"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+        />
 
-      {/* Engineering Graduation Cap merged with AI Microprocessor */}
-      <path d="M32 18L49 26L32 34L15 26Z" fill="url(#eceCapGrad)" />
-      <path d="M22 29.5v5c0 4.5 4.5 7.5 10 7.5s10-3 10-7.5v-5" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" />
-      <path d="M44 28.5v8c0 1.5 1 2.5 2 2.5" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="46" cy="39" r="1.2" fill="#fbbf24" />
+        {/* Top Trace with 45° Chamfer & Via Pad */}
+        <path
+          d="M20 18h20l4 4"
+          stroke="#3B82F6"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="44" cy="22" r="3" fill="#151F32" stroke="#38BDF8" strokeWidth="2" />
+        <circle cx="44" cy="22" r="1.2" fill="#F1F5F9" />
 
-      {/* AI Silicon Core Node */}
-      <circle cx="32" cy="26" r="2.5" fill="#ffffff" />
-      <circle cx="32" cy="26" r="4" fill="none" stroke="#67e8f9" strokeWidth="1" opacity="0.8" />
-    </svg>
+        {/* Center Logic Bus & Micro-node */}
+        <path
+          d="M20 32h16"
+          stroke="#3B82F6"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <circle cx="36" cy="32" r="2.5" fill="#38BDF8" />
+
+        {/* Bottom Trace with 45° Chamfer & Via Pad */}
+        <path
+          d="M20 46h18l6-6"
+          stroke="#3B82F6"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="44" cy="40" r="3" fill="#151F32" stroke="#38BDF8" strokeWidth="2" />
+        <circle cx="44" cy="40" r="1.2" fill="#F1F5F9" />
+
+        {/* Complementary Integrated Trace / Clock Path */}
+        <path
+          d="M44 26v10"
+          stroke="#2A3850"
+          strokeWidth="1.75"
+          strokeDasharray="2 2"
+        />
+      </svg>
+
+      {showWordmark && (
+        <div className="flex flex-col leading-none">
+          <span className="font-bold text-sm tracking-tight text-[#F1F5F9]">
+            ECE Study Buddy
+          </span>
+          <span className="text-[10px] font-mono text-[#7F8DA3] tracking-wider uppercase mt-0.5">
+            Engineering Console
+          </span>
+        </div>
+      )}
+    </div>
   );
 };

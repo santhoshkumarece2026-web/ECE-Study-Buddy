@@ -27,9 +27,12 @@ import { ProgressModal } from './components/ProgressModal';
 import { DailyGoalsModal } from './components/DailyGoalsModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { WeakTopicsCard } from './components/WeakTopicsCard';
+import { SubjectOverview } from './components/SubjectOverview';
 import { EceLogo } from './components/EceLogo';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Sparkles, 
+  Loader2,
+  Send,
   CheckCircle, 
   AlertCircle, 
   Copy, 
@@ -151,6 +154,20 @@ function validateQuizData(raw: unknown): QuizQuestion[] | null {
   return valid.length > 0 ? valid : null;
 }
 
+const SUBJECT_PLACEHOLDERS: Record<SubjectId, string> = {
+  electronics: 'e.g., Why does a silicon PN junction diode require 0.7V forward bias to conduct? (or paste circuit question)',
+  'c-programming': 'e.g., What is the difference between *ptr and &ptr in C with a memory diagram? (or paste code snippet)',
+  math: 'e.g., How do you find eigenvalues and eigenvectors of a 2x2 matrix step-by-step? (or paste problem)',
+  'general-eng': 'e.g., How to construct a Free Body Diagram for a simply supported beam with point loads (or upload diagram)',
+};
+
+const SUBJECT_ACCENTS: Record<SubjectId, { text: string; border: string; bg: string }> = {
+  electronics: { text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-50/60 dark:bg-blue-950/30' },
+  'c-programming': { text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-50/60 dark:bg-emerald-950/30' },
+  math: { text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-50/60 dark:bg-amber-950/30' },
+  'general-eng': { text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/30', bg: 'bg-violet-50/60 dark:bg-violet-950/30' },
+};
+
 export default function App() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<SubjectId>('electronics');
   const [question, setQuestion] = useState<string>('');
@@ -211,9 +228,6 @@ export default function App() {
   const [quizError, setQuizError] = useState<string | null>(null);
   const [quizDifficulty, setQuizDifficulty] = useState<QuizDifficulty>('Core Concept');
   const [quizLength, setQuizLength] = useState<QuizLength>(3);
-
-  // Subject Switch Notification State
-  const [switchNotice, setSwitchNotice] = useState<string | null>(null);
 
   // View state: 'explanation' or 'quiz'
   const [activeView, setActiveView] = useState<'explanation' | 'quiz'>('explanation');
@@ -298,16 +312,16 @@ export default function App() {
     }
   });
 
-  // Persisted Dark Mode Preference
+  // Persisted Dark Mode Preference (Consistent Dark Engineering Console)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('ece_theme');
       if (saved !== null) {
         return saved === 'dark';
       }
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -444,15 +458,6 @@ export default function App() {
     };
   }, [dailyGoalsProgress, dailyGoalsConfig]);
 
-  // Auto-dismiss subject switch notification after 4.5 seconds
-  useEffect(() => {
-    if (!switchNotice) return;
-    const timer = setTimeout(() => {
-      setSwitchNotice(null);
-    }, 4500);
-    return () => clearTimeout(timer);
-  }, [switchNotice]);
-
   const activeSubject = SUBJECTS.find(s => s.id === selectedSubjectId) || SUBJECTS[0];
 
   // Derived progress stats
@@ -573,8 +578,6 @@ export default function App() {
     setAskError(null);
     setQuizError(null);
     setActiveView('explanation');
-
-    setSwitchNotice(`Switched to ${targetName}. Started a new conversation.`);
   };
 
   // Handle Ask AI with AbortController and multimodal attachment support
@@ -595,7 +598,6 @@ export default function App() {
       controller.abort();
     }, 35000);
 
-    setSwitchNotice(null);
     setIsAskingAI(true);
     setAskError(null);
     setExplanation(''); // Start clean for streaming chunks
@@ -672,13 +674,6 @@ export default function App() {
               if (data.chunk) {
                 accumulatedAnswer += data.chunk;
                 setExplanation(accumulatedAnswer);
-              }
-              if (data.done && data.model) {
-                if (data.model !== selectedModel && data.model !== 'Curated ECE Engine') {
-                  setSwitchNotice(`Notice: Served using fallback model (${data.model}) due to high demand.`);
-                } else if (data.model === 'Curated ECE Engine') {
-                  setSwitchNotice('Notice: Live AI models are at capacity or quota limit. Displaying verified ECE curriculum answer.');
-                }
               }
             } catch (jsonErr: any) {
               if (jsonErr?.message && jsonErr.message.includes('error')) {
@@ -757,7 +752,6 @@ export default function App() {
     const controller = new AbortController();
     quizAbortRef.current = controller;
 
-    setSwitchNotice(null);
     setIsGeneratingQuiz(true);
     setQuizError(null);
     setActiveView('quiz');
@@ -840,7 +834,6 @@ export default function App() {
   const handleSelectSampleQuestion = (sample: string) => {
     setQuestion(sample);
     setAskError(null);
-    setSwitchNotice(null);
   };
 
   const handleCopyExplanation = () => {
@@ -978,7 +971,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#0B1120] text-[#F1F5F9] flex flex-col font-sans transition-colors w-full max-w-full overflow-x-hidden">
       {/* Top Bar Contract Navigation */}
       <Navbar
         onOpenFormulas={() => setIsFormulaModalOpen(true)}
@@ -1002,63 +995,63 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
         
         {/* Welcoming Header Section */}
         <section className="space-y-2 w-full min-w-0">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-3 border-b border-[#2A3850]">
             <div className="flex items-start gap-3 min-w-0">
-              <div className="hidden sm:flex p-1.5 rounded-2xl bg-slate-900 border border-cyan-500/30 shadow-xs shrink-0 mt-0.5">
+              <div className="hidden sm:flex p-1.5 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-xs shrink-0 mt-0.5">
                 <EceLogo size={38} className="w-9 h-9" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#7F8DA3] mb-1">
                   <span>First-Year Engineering Console</span>
-                  <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
+                  <span aria-hidden="true" className="select-none text-[#2A3850] px-0.5">/</span>
                   <span>Semester 1 & 2 Foundations</span>
                   {streakDays > 0 && (
                     <>
-                      <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
-                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      <span aria-hidden="true" className="select-none text-[#2A3850] px-0.5">/</span>
+                      <span className="font-semibold text-amber-400">
                         {streakDays}-Day Streak
                       </span>
                     </>
                   )}
                 </div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white" style={{ textWrap: 'balance' }}>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#F1F5F9]" style={{ textWrap: 'balance' }}>
                   ECE Study Buddy
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#A7B4C8] mt-1 max-w-2xl leading-relaxed">
                   Clear conceptual explanations, intuitive analogies, step-by-step mathematical derivations, persistent bookmarks, and adaptive practice quizzes.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-500 dark:text-slate-400 shrink-0">
-              <span className="font-medium text-slate-900 dark:text-slate-200">{activeSubject.name}</span>
-              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-[#7F8DA3] shrink-0">
+              <span className="font-semibold text-[#F1F5F9]">{activeSubject.name}</span>
+              <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
               <button
                 onClick={() => setIsDailyGoalsModalOpen(true)}
-                className="text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center gap-1"
+                className="text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center gap-1"
                 title="View & Set Daily Goals"
               >
                 <Target className="w-3.5 h-3.5" />
                 <span>Daily Goals</span>
               </button>
-              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+              <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
               <button
                 onClick={() => setIsFormulaModalOpen(true)}
-                className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center"
+                className="text-[#3B82F6] hover:text-blue-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center"
               >
                 Cheatsheets
               </button>
-              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+              <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
               <button
                 onClick={() => setIsProgressModalOpen(true)}
-                className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center"
+                className="text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center"
               >
                 Analytics
               </button>
-              <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">/</span>
+              <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
               <button
                 onClick={() => setIsLeaderboardModalOpen(true)}
-                className="text-amber-600 dark:text-amber-400 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center gap-1"
+                className="text-amber-400 hover:text-amber-300 hover:underline cursor-pointer font-medium py-1 px-1.5 min-h-[32px] flex items-center gap-1"
                 title="View Quiz Leaderboard & Top Scores"
               >
                 <Trophy className="w-3.5 h-3.5" />
@@ -1082,10 +1075,21 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
           <div className="lg:col-span-5 space-y-4 sm:space-y-5 w-full min-w-0">
             
             {/* Subject Choices */}
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 w-full min-w-0 card-responsive">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <span>1. Select Subject</span>
-                <span className="text-blue-600 dark:text-blue-400">{activeSubject.shortName}</span>
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-sm space-y-3 w-full min-w-0 card-responsive">
+              <div className="flex items-center justify-between text-xs font-semibold text-[#7F8DA3]">
+                <span>Subject Curriculum</span>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={activeSubject.id}
+                    initial={{ opacity: 0, y: -2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 2 }}
+                    transition={{ duration: 0.16 }}
+                    className={`font-semibold ${SUBJECT_ACCENTS[selectedSubjectId].text}`}
+                  >
+                    {activeSubject.name}
+                  </motion.span>
+                </AnimatePresence>
               </div>
 
               <SubjectTabs
@@ -1094,32 +1098,12 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                 onSelectTopic={(topic) => {
                   setQuestion(`Explain ${topic} with an intuitive analogy, core formulas, and a beginner-friendly example.`);
                   setAskError(null);
-                  setSwitchNotice(null);
                 }}
               />
             </div>
 
-            {/* Subject Switch Notification Banner */}
-            {switchNotice && (
-              <div className="p-3 rounded-xl bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800/80 text-blue-900 dark:text-blue-200 text-xs flex items-center justify-between gap-2 shadow-2xs animate-in fade-in w-full min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-medium truncate">{switchNotice}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSwitchNotice(null)}
-                  className="p-1.5 rounded-md text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center shrink-0"
-                  title="Dismiss notification"
-                  aria-label="Dismiss notification"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
             {/* Question Studio Input Card */}
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 w-full min-w-0 card-responsive">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-sm space-y-3 w-full min-w-0 card-responsive">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1129,8 +1113,8 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                 aria-label="Upload image, screenshot, or PDF"
               />
 
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <label htmlFor="question-input">2. Enter Question or Upload Problem</label>
+              <div className="flex items-center justify-between text-xs font-semibold text-[#7F8DA3]">
+                <label htmlFor="question-input">Engineering Problem Studio</label>
                 <div className="flex items-center gap-2">
                   {(question || attachedFile) && (
                     <button
@@ -1138,7 +1122,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                         setQuestion('');
                         setAttachedFile(null);
                       }}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer py-1 px-1.5 min-h-[30px] flex items-center"
+                      className="text-[#7F8DA3] hover:text-[#F1F5F9] cursor-pointer py-1 px-1.5 min-h-[30px] flex items-center transition-colors"
                     >
                       Clear
                     </button>
@@ -1148,24 +1132,24 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
               {/* Uploaded File Attachment Preview */}
               {attachedFile && (
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/80 text-xs shadow-2xs w-full min-w-0">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1B2940] border border-[#2A3850] text-xs shadow-xs w-full min-w-0">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     {attachedFile.previewUrl ? (
                       <img
                         src={attachedFile.previewUrl}
                         alt={attachedFile.name}
-                        className="w-11 h-11 object-cover rounded-lg border border-blue-200 dark:border-blue-700 shrink-0 shadow-2xs"
+                        className="w-11 h-11 object-cover rounded-lg border border-[#2A3850] shrink-0"
                       />
                     ) : (
-                      <div className="w-11 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800">
+                      <div className="w-11 h-11 rounded-lg bg-[#151F32] flex items-center justify-center shrink-0 text-[#3B82F6] border border-[#2A3850]">
                         <FileText className="w-5 h-5" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                      <p className="font-semibold text-[#F1F5F9] truncate">
                         {attachedFile.name}
                       </p>
-                      <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                      <p className="text-[11px] text-[#3B82F6]">
                         {(attachedFile.size / 1024).toFixed(1)} KB • {attachedFile.type.startsWith('image/') ? 'Image/Diagram' : 'Document'}
                       </p>
                     </div>
@@ -1173,7 +1157,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   <button
                     type="button"
                     onClick={() => setAttachedFile(null)}
-                    className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+                    className="p-1.5 rounded-md text-[#7F8DA3] hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
                     title="Remove attached file"
                     aria-label="Remove attached file"
                   >
@@ -1191,8 +1175,8 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                 onDrop={handleDrop}
                 className={`rounded-xl border transition-all ${
                   isDragging
-                    ? 'border-blue-500 ring-2 ring-blue-500/30 bg-blue-50/30 dark:bg-blue-950/30'
-                    : 'border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
+                    ? 'border-[#3B82F6] ring-2 ring-[#3B82F6]/30 bg-[#1B2940]/40'
+                    : 'border-[#2A3850] bg-[#111827] focus-within:border-[#3B82F6] focus-within:ring-1 focus-within:ring-[#3B82F6]/40'
                 }`}
               >
                 <textarea
@@ -1207,9 +1191,9 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   placeholder={
                     attachedFile
                       ? `Add specific notes or instructions for ${attachedFile.name} (optional)...`
-                      : `Ask anything about ${activeSubject.shortName} or attach/paste problem screenshot...`
+                      : SUBJECT_PLACEHOLDERS[selectedSubjectId] || `Ask anything about ${activeSubject.shortName}...`
                   }
-                  className="w-full p-3 sm:p-3.5 text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent resize-none focus:outline-hidden leading-relaxed min-h-[85px]"
+                  className="w-full p-3 sm:p-3.5 text-base sm:text-sm text-[#F1F5F9] placeholder:text-[#7F8DA3] bg-transparent resize-none focus:outline-hidden leading-relaxed min-h-[85px]"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                       e.preventDefault();
@@ -1218,20 +1202,20 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   }}
                 />
 
-                <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-400">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-2 border-t border-[#2A3850] text-[11px] text-[#7F8DA3]">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer font-medium text-[11px]"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-lg bg-[#1B2940] hover:bg-[#223350] border border-[#2A3850] text-[#F1F5F9] transition-colors cursor-pointer font-medium text-[11px]"
                       title="Upload problem image, screenshot, or document"
                     >
-                      <Paperclip className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <Paperclip className="w-3.5 h-3.5 text-[#3B82F6]" />
                       <span>{attachedFile ? 'Change File' : 'Attach File'}</span>
                     </button>
-                    <span className="hidden sm:inline text-slate-400">Drag & drop or paste screenshot</span>
+                    <span className="hidden sm:inline text-[#7F8DA3]">Drag & drop or paste screenshot</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-[#7F8DA3]">
                     <span className="hidden sm:inline">Ctrl+Enter</span>
                     <span className="tabular-nums">{question.length} chars</span>
                   </div>
@@ -1240,14 +1224,18 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
               {/* Action Buttons Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 w-full">
-                {/* Ask AI Button */}
+                {/* Ask AI / Solve & Explain Button */}
                 <button
                   type="button"
                   onClick={handleAskAI}
                   disabled={isAskingAI || isGeneratingQuiz}
-                  className="w-full py-3 px-4 min-h-[46px] rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 min-h-[46px] rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#3B82F6] hover:bg-[#2563EB] active:bg-blue-700 shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  {isAskingAI ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                   <span>
                     {isAskingAI
                       ? attachedFile
@@ -1255,7 +1243,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                         : 'Analyzing...'
                       : attachedFile
                       ? 'Solve Uploaded Problem'
-                      : 'Ask AI'}
+                      : 'Solve & Explain'}
                   </span>
                 </button>
 
@@ -1264,20 +1252,20 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   type="button"
                   onClick={() => handleGenerateQuiz(quizDifficulty, quizLength)}
                   disabled={isGeneratingQuiz || isAskingAI}
-                  className="w-full py-3 px-4 min-h-[46px] rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 min-h-[46px] rounded-xl text-xs sm:text-sm font-semibold text-[#F1F5F9] bg-[#1B2940] hover:bg-[#223350] border border-[#2A3850] shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle className="w-4 h-4 text-[#34D399]" />
                   <span>{isGeneratingQuiz ? 'Creating Quiz...' : `Quiz (${quizLength} Qs • ${quizDifficulty})`}</span>
                 </button>
               </div>
 
               {/* Pre-Quiz Difficulty Selector: Allows toggling difficulty before generating */}
               <div className="pt-1.5 flex items-center justify-between gap-2 text-xs">
-                <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="text-[#7F8DA3] font-medium flex items-center gap-1.5 shrink-0">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#3B82F6]" />
                   <span>Difficulty:</span>
                 </span>
-                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[#111827] border border-[#2A3850]">
                   {(['Beginner', 'Core Concept', 'Exam Level'] as QuizDifficulty[]).map((diff) => (
                     <button
                       key={diff}
@@ -1285,71 +1273,85 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                       onClick={() => setQuizDifficulty(diff)}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
                         quizDifficulty === diff
-                          ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#1B2940] text-[#3B82F6] border border-[#3B82F6]/40 shadow-xs font-semibold'
+                          : 'text-[#7F8DA3] hover:text-[#F1F5F9]'
                       }`}
                       title={`Set difficulty to ${diff} before generating`}
                     >
-                      {diff === 'Exam Level' ? 'Exam 🔥' : diff === 'Core Concept' ? 'Core' : 'Beginner'}
+                      {diff === 'Exam Level' ? 'Exam' : diff === 'Core Concept' ? 'Core' : 'Beginner'}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Active AI Engine Indicator */}
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 w-full min-w-0">
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#111827] border border-[#2A3850] text-[11px] text-[#7F8DA3] w-full min-w-0">
                 <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="shrink-0">Engine:</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">
-                    {selectedModel === 'gemini-3.1-flash-lite' ? 'Fast (gemini-3.1-flash-lite)' : selectedModel === 'gemini-3.1-pro' ? 'Deep Reasoning (gemini-3.1-pro)' : 'Balanced (gemini-3.8-flash)'}
+                  <span className="font-medium text-[#7F8DA3] shrink-0">Engine:</span>
+                  <span className="font-semibold text-[#F1F5F9] truncate">
+                    {selectedModel === 'gemini-3.1-flash-lite' ? 'Fast · gemini-3.1-flash-lite' : selectedModel === 'gemini-3.1-pro' ? 'Deep Reasoning · gemini-3.1-pro' : 'Balanced · gemini-3.8-flash'}
                   </span>
                 </span>
-                <span className="text-[10px] text-slate-400 shrink-0 hidden sm:inline ml-1">
-                  Change mode in header
+                <span className="text-[10px] text-[#7F8DA3] shrink-0 hidden sm:inline ml-1 font-medium">
+                  Switch in header
                 </span>
               </div>
 
-              {/* Sample Questions (Animates smoothly with subtle slide-in when selectedSubjectId changes) */}
-              <div key={`sample-${selectedSubjectId}`} className="pt-2 border-t border-slate-100 dark:border-slate-800/80 w-full min-w-0 animate-subject-slide-in">
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+              {/* Sample Questions (Animates smoothly with subtle motion when selectedSubjectId changes) */}
+              <div className="pt-2.5 border-t border-[#2A3850] w-full min-w-0">
+                <span className="text-[11px] font-semibold text-[#7F8DA3] block mb-2">
                   Frequent First-Year Exam Questions:
                 </span>
-                <div className="space-y-1.5 w-full">
-                  {activeSubject.sampleQuestions.slice(0, 3).map((sample, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSelectSampleQuestion(sample)}
-                      className="w-full text-left text-xs p-2.5 min-h-[38px] rounded-lg bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer flex items-center justify-between group"
-                    >
-                      <span className="line-clamp-1 flex-1 pr-1">{sample}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
-                    </button>
-                  ))}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`sample-${selectedSubjectId}`}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    className="space-y-1.5 w-full"
+                  >
+                    {activeSubject.sampleQuestions.slice(0, 3).map((sample, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectSampleQuestion(sample)}
+                        type="button"
+                        className={`w-full text-left text-xs p-2.5 min-h-[38px] rounded-lg bg-[#1B2940] hover:bg-[#223350] border border-[#2A3850] text-[#A7B4C8] hover:text-[#F1F5F9] transition-colors cursor-pointer flex items-center justify-between group ${
+                          selectedSubjectId === 'electronics' ? 'hover:border-blue-500/50' :
+                          selectedSubjectId === 'c-programming' ? 'hover:border-emerald-500/50' :
+                          selectedSubjectId === 'math' ? 'hover:border-amber-500/50' :
+                          'hover:border-violet-500/50'
+                        }`}
+                      >
+                        <span className="line-clamp-1 flex-1 pr-1 font-medium">{sample}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[#7F8DA3] group-hover:text-[#3B82F6] shrink-0 transition-colors" />
+                      </button>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Output Console / Quiz Canvas (Animates smoothly with subtle slide-in when selectedSubjectId changes) */}
-          <div key={`workspace-${selectedSubjectId}`} className="lg:col-span-7 space-y-4 w-full min-w-0 animate-subject-slide-in">
+          {/* Right Column: Output Console / Quiz Canvas */}
+          <div className="lg:col-span-7 space-y-4 w-full min-w-0">
             
             {/* Console Navigation Header if response exists */}
             {(explanation || quizQuestions) && !isGeneratingQuiz && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 sm:p-1.5 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 w-full min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 sm:p-1.5 bg-[#151F32] rounded-xl border border-[#2A3850] w-full min-w-0 shadow-sm">
                 <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto scroll-touch pb-0.5 sm:pb-0 min-w-0">
                   {explanation && (
                     <button
                       onClick={() => setActiveView('explanation')}
                       className={`px-3 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
                         activeView === 'explanation'
-                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#1B2940] text-[#F1F5F9] border border-[#2A3850] shadow-xs'
+                          : 'text-[#A7B4C8] hover:text-[#F1F5F9]'
                       }`}
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <BookOpen className="w-3.5 h-3.5 text-[#3B82F6]" />
                       <span>AI Explanation</span>
-                      {isAskingAI && <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping" />}
+                      {isAskingAI && <span className="inline-block w-2 h-2 rounded-full bg-[#3B82F6] animate-ping" />}
                     </button>
                   )}
 
@@ -1358,45 +1360,45 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                       onClick={() => setActiveView('quiz')}
                       className={`px-3 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
                         activeView === 'quiz'
-                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#1B2940] text-[#F1F5F9] border border-[#2A3850] shadow-xs'
+                          : 'text-[#A7B4C8] hover:text-[#F1F5F9]'
                       }`}
                     >
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <CheckCircle className="w-3.5 h-3.5 text-[#34D399]" />
                       <span>Quiz Mode</span>
-                      <span className="text-[10px] tabular-nums text-slate-400">({quizQuestions.length})</span>
+                      <span className="text-[10px] tabular-nums text-[#7F8DA3]">({quizQuestions.length})</span>
                     </button>
                   )}
                 </div>
 
                 {activeView === 'explanation' && explanation && (
-                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/80 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-[#2A3850]">
                     {/* Explain Intuitively Quick Action Button */}
                     <button
                       type="button"
                       onClick={handleExplainIntuitively}
                       disabled={isGeneratingIntuitive || isAskingAI}
-                      className="px-2.5 py-1.5 text-xs rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center gap-1.5 cursor-pointer font-medium disabled:opacity-50 min-h-[38px] sm:min-h-[32px]"
+                      className="px-2.5 py-1.5 text-xs rounded-lg bg-amber-950/30 text-amber-300 border border-amber-800/60 hover:bg-amber-900/40 transition-colors flex items-center gap-1.5 cursor-pointer font-medium disabled:opacity-50 min-h-[38px] sm:min-h-[32px]"
                       title="Explain the core concept using a relatable everyday analogy"
                     >
-                      <Lightbulb className={`w-3.5 h-3.5 text-amber-500 ${isGeneratingIntuitive ? 'animate-pulse' : ''}`} />
+                      <Lightbulb className={`w-3.5 h-3.5 text-amber-400 ${isGeneratingIntuitive ? 'animate-pulse' : ''}`} />
                       <span>{isGeneratingIntuitive ? 'Explaining...' : 'Explain Intuitively'}</span>
                     </button>
 
                     <button
                       onClick={handleCopyExplanation}
                       disabled={isAskingAI}
-                      className="px-2.5 py-1.5 text-xs rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 cursor-pointer min-h-[38px] sm:min-h-[32px] disabled:opacity-50"
+                      className="px-2.5 py-1.5 text-xs rounded-md text-[#A7B4C8] hover:text-[#F1F5F9] hover:bg-[#1B2940] transition-colors flex items-center gap-1 cursor-pointer min-h-[38px] sm:min-h-[32px] disabled:opacity-50"
                       title="Copy explanation text"
                     >
                       {copiedExplanation ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copied</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <Copy className="w-3.5 h-3.5 text-[#7F8DA3]" />
                           <span>Copy</span>
                         </>
                       )}
@@ -1408,19 +1410,19 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                       disabled={isAskingAI}
                       className={`px-2.5 py-1.5 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer font-medium min-h-[38px] sm:min-h-[32px] disabled:opacity-50 ${
                         isCurrentExplanationBookmarked
-                          ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800'
+                          ? 'bg-[#1B2940] text-[#3B82F6] border border-[#3B82F6]/50'
+                          : 'text-[#A7B4C8] hover:text-[#F1F5F9] hover:bg-[#1B2940]'
                       }`}
                       title={isCurrentExplanationBookmarked ? 'Remove bookmark' : 'Bookmark this explanation'}
                     >
-                      <Bookmark className={`w-3.5 h-3.5 ${isCurrentExplanationBookmarked ? 'fill-current text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                      <Bookmark className={`w-3.5 h-3.5 ${isCurrentExplanationBookmarked ? 'fill-current text-[#3B82F6]' : 'text-[#7F8DA3]'}`} />
                       <span>{isCurrentExplanationBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
                     </button>
 
                     <button
                       onClick={() => handleGenerateQuiz(quizDifficulty, quizLength)}
                       disabled={isAskingAI}
-                      className="px-2.5 py-1.5 text-xs rounded-md text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors flex items-center gap-1 cursor-pointer font-medium min-h-[38px] sm:min-h-[32px] disabled:opacity-50"
+                      className="px-2.5 py-1.5 text-xs rounded-md text-emerald-400 hover:bg-emerald-950/40 transition-colors flex items-center gap-1 cursor-pointer font-medium min-h-[38px] sm:min-h-[32px] disabled:opacity-50 border border-emerald-800/40"
                       title="Generate quiz questions for this topic"
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
@@ -1433,12 +1435,12 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
             {/* Error Message */}
             {(askError || quizError) && (
-              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm w-full min-w-0">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm w-full min-w-0 shadow-sm">
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <span className="font-semibold">Notice: </span>
-                    <span>{askError || quizError}</span>
+                    <span className="font-semibold text-rose-100">Notice: </span>
+                    <span className="text-rose-200">{askError || quizError}</span>
                   </div>
                 </div>
                 <button
@@ -1446,7 +1448,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                     if (askError) handleAskAI();
                     if (quizError) handleGenerateQuiz(quizDifficulty, quizLength);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded-md text-xs font-semibold bg-rose-200 dark:bg-rose-900 hover:bg-rose-300 text-rose-900 dark:text-rose-100 transition-colors cursor-pointer shrink-0 text-center min-h-[36px]"
+                  className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded-md text-xs font-semibold bg-rose-900/80 hover:bg-rose-800 text-rose-100 border border-rose-700/80 transition-colors cursor-pointer shrink-0 text-center min-h-[36px]"
                 >
                   Retry
                 </button>
@@ -1455,19 +1457,19 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
             {/* Loading Indicator (Shown when quiz is crafting, or when AI query begins before first chunk arrives) */}
             {((isAskingAI && !explanation) || isGeneratingQuiz) && (
-              <div className="p-6 sm:p-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs text-center space-y-3 w-full min-w-0 card-responsive">
-                <div className="w-10 h-10 mx-auto rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                  <Sparkles className="w-5 h-5 animate-spin" />
+              <div className="p-6 sm:p-12 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-sm text-center space-y-3 w-full min-w-0 card-responsive">
+                <div className="w-10 h-10 mx-auto rounded-xl bg-[#3B82F6] text-white flex items-center justify-center shadow-xs">
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                  <h3 className="font-bold text-sm sm:text-base text-[#F1F5F9]">
                     {isAskingAI
                       ? `Synthesizing explanation for ${activeSubject.name}...`
                       : `Crafting ${quizLength} conceptual questions for ${activeSubject.name}...`}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-[#A7B4C8] mt-1 max-w-sm mx-auto leading-relaxed">
                     {isAskingAI
-                      ? 'Connecting to Gemini Flash and streaming step-by-step logic, circuit diagrams, and exam warnings...'
+                      ? 'Formulating step-by-step logic, mathematical derivations, circuit schematics, and exam traps...'
                       : `Setting up ${quizLength} questions at ${quizDifficulty} level with detailed rationales.`}
                   </p>
                 </div>
@@ -1476,71 +1478,78 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
             {/* Active Output 1: Explanation View (Displayed live during streaming and after completion) */}
             {!isGeneratingQuiz && activeView === 'explanation' && explanation && (
-              <div className="space-y-4 w-full min-w-0">
-                <div className="p-3.5 sm:p-6 lg:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 w-full min-w-0 card-responsive overflow-hidden">
+              <motion.div
+                key={`explanation-${selectedSubjectId}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="space-y-4 w-full min-w-0"
+              >
+                <div className="p-3.5 sm:p-6 lg:p-7 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-sm space-y-4 w-full min-w-0 card-responsive overflow-hidden">
                   {/* Topic Title Bar with live streaming status */}
-                  <div className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="pb-3 border-b border-[#2A3850] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">{activeSubject.name}</span>
-                        <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600 px-0.5">/</span>
-                        <span>Conceptual Breakdown</span>
+                      <div className="text-xs text-[#7F8DA3] flex items-center gap-1.5 mb-1">
+                        <span className={`font-semibold ${SUBJECT_ACCENTS[selectedSubjectId].text}`}>{activeSubject.name}</span>
+                        <span aria-hidden="true" className="select-none text-[#2A3850] px-0.5">/</span>
+                        <span>Technical Breakdown</span>
                       </div>
-                      <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white break-words">
+                      <h2 className="text-base sm:text-xl font-bold text-[#F1F5F9] break-words">
                         {question || 'Concept Explanation'}
                       </h2>
                     </div>
 
                     {isAskingAI && (
-                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold self-start sm:self-center shrink-0">
-                        <Sparkles className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                        <span>Streaming response live...</span>
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1B2940] border border-[#3B82F6]/50 text-[#3B82F6] text-xs font-semibold self-start sm:self-center shrink-0">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#3B82F6]" />
+                        <span>Formulating solution live...</span>
                       </div>
                     )}
                   </div>
 
                   {/* Markdown Renderer with live typing cursor */}
-                  <div className="text-slate-800 dark:text-slate-200 w-full min-w-0">
+                  <div className="text-[#F1F5F9] w-full min-w-0">
                     <MarkdownRenderer content={explanation} />
                     {isAskingAI && (
-                      <span className="inline-block w-2 h-4 ml-1.5 bg-blue-600 dark:bg-blue-400 animate-pulse align-middle" aria-hidden="true" />
+                      <span className="inline-block w-2 h-4 ml-1.5 bg-[#3B82F6] animate-pulse align-middle" aria-hidden="true" />
                     )}
                   </div>
 
                   {/* Toast feedback */}
                   {savedBookmarkToast && (
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2 animate-in fade-in">
-                      <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div className="p-3 rounded-lg bg-[#1B2940] border border-[#3B82F6]/40 text-xs text-[#3B82F6] flex items-center gap-2 animate-in fade-in">
+                      <Check className="w-4 h-4 text-[#3B82F6] shrink-0" />
                       <span>{bookmarkToastMessage}</span>
                     </div>
                   )}
 
                   {/* Feature 1 Action: Generate Similar Practice Problem Button */}
-                  <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="pt-3.5 border-t border-[#2A3850] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                     <button
                       type="button"
                       onClick={handleGenerateSimilarProblem}
                       disabled={isGeneratingPractice || isAskingAI}
-                      className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs disabled:opacity-50 min-h-[44px]"
+                      className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl bg-[#1B2940] hover:bg-[#223350] text-[#F1F5F9] border border-[#2A3850] hover:border-[#3B82F6]/60 text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 min-h-[44px]"
                     >
                       {isGeneratingPractice ? (
                         <>
-                          <Sparkles className="w-4 h-4 animate-spin text-indigo-500" />
+                          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
                           <span>Generating Practice Problem...</span>
                         </>
                       ) : isAskingAI ? (
                         <>
-                          <Sparkles className="w-4 h-4 animate-spin text-indigo-500" />
+                          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
                           <span>Streaming answer in progress...</span>
                         </>
                       ) : (
                         <>
-                          <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          <Target className="w-4 h-4 text-[#3B82F6]" />
                           <span>Generate Similar Practice Problem</span>
                         </>
                       )}
                     </button>
-                    <span className="text-[11px] text-slate-400 text-center sm:text-right">
+                    <span className="text-[11px] text-[#7F8DA3] text-center sm:text-right">
                       Test yourself with different numbers & hidden solution
                     </span>
                   </div>
@@ -1548,9 +1557,9 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Intuitive Explanation Loading State */}
                 {isGeneratingIntuitive && (
-                  <div className="p-5 sm:p-6 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 text-center space-y-2 animate-in fade-in w-full min-w-0">
-                    <Lightbulb className="w-6 h-6 text-amber-500 animate-spin mx-auto" />
-                    <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-[#1B2940] border border-[#2A3850] text-center space-y-2 animate-in fade-in w-full min-w-0">
+                    <Lightbulb className="w-6 h-6 text-amber-400 animate-spin mx-auto" />
+                    <p className="text-xs sm:text-sm font-semibold text-[#F1F5F9]">
                       Crafting intuitive real-world analogy and beginner-friendly solution...
                     </p>
                   </div>
@@ -1558,14 +1567,14 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Intuitive Explanation Error State */}
                 {intuitiveError && (
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm w-full min-w-0">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm w-full min-w-0">
                     <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                       <span>{intuitiveError}</span>
                     </div>
                     <button
                       onClick={handleExplainIntuitively}
-                      className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded bg-rose-200 dark:bg-rose-900 font-semibold cursor-pointer text-center min-h-[36px]"
+                      className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded bg-rose-900/80 text-rose-100 border border-rose-700/80 font-semibold cursor-pointer text-center min-h-[36px]"
                     >
                       Retry
                     </button>
@@ -1574,22 +1583,22 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Intuitive Explanation Display Card */}
                 {intuitiveExplanation && (
-                  <div className="p-3.5 sm:p-6 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/90 dark:border-amber-800/70 shadow-xs space-y-3.5 animate-in fade-in w-full min-w-0 card-responsive overflow-hidden">
-                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-amber-200/60 dark:border-amber-800/40">
+                  <div className="p-3.5 sm:p-6 rounded-2xl bg-[#1B2940] border border-[#2A3850] shadow-sm space-y-3.5 animate-in fade-in w-full min-w-0 card-responsive overflow-hidden">
+                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-[#2A3850]">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="p-1.5 rounded-lg bg-amber-500 text-white shadow-2xs shrink-0">
+                        <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-800/40 shrink-0">
                           <Lightbulb className="w-4 h-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                            <h3 className="text-sm sm:text-base font-bold text-[#F1F5F9]">
                               Intuitive Real-World Explanation
                             </h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800/50">
                               Analogy First
                             </span>
                           </div>
-                          <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                          <p className="text-[11px] text-[#A7B4C8]">
                             Core concept explained using everyday mental models
                           </p>
                         </div>
@@ -1597,14 +1606,14 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                       <button
                         type="button"
                         onClick={() => setIntuitiveExplanation(null)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-amber-100/60 dark:hover:bg-amber-900/40 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center shrink-0"
+                        className="p-1.5 rounded-lg text-[#7F8DA3] hover:text-[#F1F5F9] hover:bg-[#151F32] cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center shrink-0 transition-colors"
                         title="Dismiss intuitive explanation"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="text-slate-800 dark:text-slate-200 w-full min-w-0">
+                    <div className="text-[#F1F5F9] w-full min-w-0">
                       <MarkdownRenderer content={intuitiveExplanation} />
                     </div>
                   </div>
@@ -1612,9 +1621,9 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Practice Problem Loading State */}
                 {isGeneratingPractice && (
-                  <div className="p-5 sm:p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/50 text-center space-y-2 animate-in fade-in w-full min-w-0">
-                    <Sparkles className="w-6 h-6 text-indigo-500 animate-spin mx-auto" />
-                    <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-[#151F32] border border-[#2A3850] text-center space-y-2 animate-in fade-in w-full min-w-0">
+                    <Loader2 className="w-6 h-6 text-[#3B82F6] animate-spin mx-auto" />
+                    <p className="text-xs sm:text-sm font-semibold text-[#F1F5F9]">
                       Formulating a new practice problem with alternative values...
                     </p>
                   </div>
@@ -1622,14 +1631,14 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Practice Problem Error State */}
                 {practiceError && (
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm w-full min-w-0">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm w-full min-w-0">
                     <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                       <span>{practiceError}</span>
                     </div>
                     <button
                       onClick={handleGenerateSimilarProblem}
-                      className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded bg-rose-200 dark:bg-rose-900 font-semibold cursor-pointer text-center min-h-[36px]"
+                      className="w-full sm:w-auto px-3 py-2 sm:py-1 rounded bg-rose-900/80 text-rose-100 border border-rose-700/80 font-semibold cursor-pointer text-center min-h-[36px]"
                     >
                       Retry
                     </button>
@@ -1638,22 +1647,22 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
 
                 {/* Similar Practice Problem Display Card */}
                 {practiceProblemData && (
-                  <div className="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200/90 dark:border-indigo-800/90 shadow-xs space-y-4 animate-in fade-in w-full min-w-0 card-responsive overflow-hidden">
-                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="p-3.5 sm:p-6 rounded-2xl bg-[#151F32] border border-[#2A3850] shadow-sm space-y-4 animate-in fade-in w-full min-w-0 card-responsive overflow-hidden">
+                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-[#2A3850]">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-2xs shrink-0">
+                        <div className="p-1.5 rounded-lg bg-[#3B82F6] text-white shadow-xs shrink-0">
                           <Target className="w-4 h-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                            <h3 className="text-sm sm:text-base font-bold text-[#F1F5F9]">
                               Similar Practice Problem
                             </h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1B2940] border border-[#2A3850] text-[#3B82F6]">
                               New Values
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          <p className="text-[11px] text-[#A7B4C8]">
                             Work through this problem independently before revealing the steps
                           </p>
                         </div>
@@ -1664,7 +1673,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                           type="button"
                           onClick={handleGenerateSimilarProblem}
                           disabled={isGeneratingPractice}
-                          className="px-2.5 py-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg transition-colors cursor-pointer flex items-center gap-1 min-h-[38px] sm:min-h-[36px]"
+                          className="px-2.5 py-1.5 text-xs text-[#3B82F6] hover:bg-[#1B2940] rounded-lg transition-colors cursor-pointer flex items-center gap-1 min-h-[38px] sm:min-h-[36px]"
                           title="Generate another variation"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
@@ -1673,7 +1682,7 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                         <button
                           type="button"
                           onClick={() => setPracticeProblemData(null)}
-                          className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center shrink-0"
+                          className="p-1.5 text-[#7F8DA3] hover:text-[#F1F5F9] rounded-lg hover:bg-[#1B2940] transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center shrink-0"
                           title="Dismiss practice problem"
                         >
                           <X className="w-4 h-4" />
@@ -1682,39 +1691,39 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                     </div>
 
                     {/* Problem Statement Body */}
-                    <div className="text-slate-800 dark:text-slate-200 w-full min-w-0">
+                    <div className="text-[#F1F5F9] w-full min-w-0">
                       <MarkdownRenderer content={practiceProblemData.problem} />
                     </div>
 
                     {/* Collapsible Show Solution Button & Section */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                    <div className="pt-2 border-t border-[#2A3850] space-y-3">
                       <button
                         type="button"
                         onClick={() => setIsSolutionOpen((prev) => !prev)}
-                        className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                        className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px] bg-[#1B2940] hover:bg-[#223350] text-[#F1F5F9] border border-[#2A3850] shadow-xs"
                       >
                         {isSolutionOpen ? (
                           <>
-                            <EyeOff className="w-4 h-4 text-indigo-500" />
+                            <EyeOff className="w-4 h-4 text-[#3B82F6]" />
                             <span>Hide Step-by-Step Solution</span>
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                            <ChevronUp className="w-4 h-4 text-[#7F8DA3]" />
                           </>
                         ) : (
                           <>
-                            <Eye className="w-4 h-4 text-indigo-500" />
+                            <Eye className="w-4 h-4 text-[#3B82F6]" />
                             <span>Show Step-by-Step Solution</span>
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                            <ChevronDown className="w-4 h-4 text-[#7F8DA3]" />
                           </>
                         )}
                       </button>
 
                       {isSolutionOpen && (
-                        <div className="p-3.5 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in w-full min-w-0">
-                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                        <div className="p-3.5 sm:p-5 rounded-xl bg-[#111827] border border-[#2A3850] space-y-3 animate-in fade-in w-full min-w-0">
+                          <div className="flex items-center gap-2 text-xs font-bold text-[#34D399] uppercase tracking-wider">
                             <CheckCircle className="w-4 h-4" />
                             <span>Step-by-Step Solution & Derivations</span>
                           </div>
-                          <div className="text-slate-800 dark:text-slate-200 w-full min-w-0">
+                          <div className="text-[#F1F5F9] w-full min-w-0">
                             <MarkdownRenderer content={practiceProblemData.solution} />
                           </div>
                         </div>
@@ -1722,12 +1731,19 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {/* Active Output 2: Quiz View */}
             {!isAskingAI && !isGeneratingQuiz && activeView === 'quiz' && quizQuestions && (
-              <div className="w-full min-w-0">
+              <motion.div
+                key={`quiz-${selectedSubjectId}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full min-w-0"
+              >
                 <QuizSection
                   questions={quizQuestions}
                   subjectName={activeSubject.name}
@@ -1745,91 +1761,43 @@ Explain the core concept using a simple, relatable real-world analogy in two sho
                   onRecordAttempt={handleRecordQuizAttempt}
                   onOpenLeaderboard={() => setIsLeaderboardModalOpen(true)}
                 />
-              </div>
+              </motion.div>
             )}
 
-            {/* Initial Idle State: Dashboard Welcome Guide */}
-            {!explanation && !quizQuestions && !isAskingAI && !isGeneratingQuiz && (
-              <div className="p-4 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 sm:space-y-6 w-full min-w-0 card-responsive">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Study Console Ready
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Select a subject on the left, enter any question, or select a syllabus highlight to get started.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 w-full min-w-0">
-                  <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5 w-full min-w-0">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
-                      <Lightbulb className="w-4 h-4 text-amber-500" />
-                      <span>Everyday Analogies</span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Visualize electric potential like water pressure, and pointers like street mailboxes.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5 w-full min-w-0">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
-                      <BookOpen className="w-4 h-4 text-blue-500" />
-                      <span>Step-by-Step Logic</span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Rigorous formulas with SI units, matrix calculations, and clean C programming samples.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5 w-full min-w-0">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
-                      <ShieldAlert className="w-4 h-4 text-rose-500" />
-                      <span>Exam Trap Warnings</span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Highlight frequent pitfalls students stumble on during midterms and university finals.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quick Start Prompt */}
-                <div className="p-3.5 sm:p-4 rounded-xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full min-w-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-blue-900 dark:text-blue-200">
-                      Try a starter inquiry in {activeSubject.name}:
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 line-clamp-2">
-                      "{activeSubject.sampleQuestions[0]}"
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setQuestion(activeSubject.sampleQuestions[0]);
-                      setAskError(null);
-                    }}
-                    className="w-full sm:w-auto px-4 py-2.5 min-h-[42px] text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition-colors cursor-pointer shrink-0 text-center flex items-center justify-center"
-                  >
-                    Load Question
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Initial Idle State: Academic Subject Overview with Fluid Motion */}
+            <AnimatePresence mode="wait">
+              {!explanation && !quizQuestions && !isAskingAI && !isGeneratingQuiz && (
+                <SubjectOverview
+                  key={`overview-${selectedSubjectId}`}
+                  subject={activeSubject}
+                  onSelectSample={(sample) => {
+                    setQuestion(sample);
+                    setAskError(null);
+                  }}
+                  onSelectTopic={(topic) => {
+                    setQuestion(`Explain ${topic} with an intuitive analogy, core formulas, and a beginner-friendly example.`);
+                    setAskError(null);
+                  }}
+                  onStartQuiz={() => handleGenerateQuiz(quizDifficulty, quizLength)}
+                  onOpenFormulas={() => setIsFormulaModalOpen(true)}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 py-5 text-xs text-slate-500 dark:text-slate-400">
+      <footer className="mt-auto border-t border-[#2A3850] bg-[#0B1120] py-5 text-xs text-[#7F8DA3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>ECE Study Buddy - First-Year Engineering AI Companion</span>
-          <div className="flex items-center gap-2 text-slate-400">
+          <span>ECE Study Buddy - First-Year Engineering Academic Console</span>
+          <div className="flex items-center gap-2 text-[#7F8DA3]">
             <span>Electronics</span>
-            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
+            <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
             <span>C Programming</span>
-            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
+            <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
             <span>Mathematics</span>
-            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-700">/</span>
+            <span aria-hidden="true" className="select-none text-[#2A3850]">/</span>
             <span>General Engg.</span>
           </div>
         </div>

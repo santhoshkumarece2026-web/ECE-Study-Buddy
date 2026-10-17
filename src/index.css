@@ -2,15 +2,49 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-canvas-main: #0B1120;
+  --color-canvas-secondary: #111827;
+  --color-surface-card: #151F32;
+  --color-surface-elevated: #1B2940;
+  --color-border-subtle: #2A3850;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #A7B4C8;
+  --color-text-muted: #7F8DA3;
+  --color-brand-blue: #3B82F6;
+  --color-brand-hover: #2563EB;
+  --color-accent-success: #34D399;
+  --color-accent-warning: #FBBF24;
+}
+
+:root {
+  --bg-main: #0B1120;
+  --bg-secondary: #111827;
+  --bg-card: #151F32;
+  --bg-card-elevated: #1B2940;
+  --border-subtle: #2A3850;
+  --text-primary: #F1F5F9;
+  --text-secondary: #A7B4C8;
+  --text-muted: #7F8DA3;
+  --primary-blue: #3B82F6;
+  --hover-blue: #2563EB;
+  --accent-success: #34D399;
+  --accent-warning: #FBBF24;
+}
+
 @layer base {
   html {
-    /* Prevent accidental horizontal overflow viewport scrolling */
     overflow-x: hidden;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    background-color: #0B1120;
+    color: #F1F5F9;
+    color-scheme: dark;
   }
 
   body {
+    background-color: #0B1120;
+    color: #F1F5F9;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -50,7 +84,6 @@
 
 /* Responsive Layout & Ergonomic Tap Target Utilities */
 @layer utilities {
-  /* Strict container containment preventing children from blowing out mobile width */
   .card-responsive {
     width: 100%;
     max-width: 100%;
@@ -60,7 +93,6 @@
     word-break: break-word;
   }
 
-  /* Standard mobile touch target sizes (WCAG recommended 44px) */
   .touch-target {
     min-height: 44px;
     min-width: 44px;
@@ -70,13 +102,11 @@
     min-height: 38px;
   }
 
-  /* Momentum smooth scrolling on mobile */
   .scroll-touch {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
   }
 
-  /* Safe flex/grid child min-width reset to prevent blowout */
   .flex-child-safe {
     min-width: 0;
     flex-shrink: 1;
@@ -90,23 +120,23 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0B1120;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: #2A3850;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+  background: #3B82F6;
 }
 
 /* Subtle slide-in animation when switching subjects */
 @keyframes subjectSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   100% {
     opacity: 1;
@@ -115,7 +145,7 @@
 }
 
 .animate-subject-slide-in {
-  animation: subjectSlideIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: subjectSlideIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -125,4 +155,3 @@
     transform: none;
   }
 }
-

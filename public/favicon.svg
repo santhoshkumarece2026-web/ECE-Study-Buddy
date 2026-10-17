@@ -1,54 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="chipGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
-    </linearGradient>
-    <linearGradient id="neonCyan" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#22d3ee" />
-      <stop offset="50%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#3b82f6" />
-    </linearGradient>
-    <linearGradient id="capGrad" x1="18" y1="20" x2="46" y2="38" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#6366f1" />
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
-  </defs>
-
-  <!-- Outer Silicon Chip Package -->
-  <rect x="8" y="8" width="48" height="48" rx="12" fill="url(#chipGrad)" stroke="url(#neonCyan)" stroke-width="2" />
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="#0B1120" stroke="#2A3850" stroke-width="2" />
   
-  <!-- IC Metallic Pins (Top, Bottom, Left, Right) -->
-  <!-- Top Pins -->
-  <path d="M20 3v5 M32 3v5 M44 3v5" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-  <!-- Bottom Pins -->
-  <path d="M20 56v5 M32 56v5 M44 56v5" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-  <!-- Left Pins -->
-  <path d="M3 20h5 M3 32h5 M3 44h5" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-  <!-- Right Pins -->
-  <path d="M56 20h5 M56 32h5 M56 44h5" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Outer Terminals -->
+  <rect x="2" y="22" width="3" height="6" rx="1" fill="#3B82F6" />
+  <rect x="2" y="36" width="3" height="6" rx="1" fill="#3B82F6" />
+  <rect x="59" y="22" width="3" height="6" rx="1" fill="#3B82F6" />
+  <rect x="59" y="36" width="3" height="6" rx="1" fill="#3B82F6" />
+  <rect x="22" y="2" width="6" height="3" rx="1" fill="#3B82F6" />
+  <rect x="36" y="2" width="6" height="3" rx="1" fill="#3B82F6" />
+  <rect x="22" y="59" width="6" height="3" rx="1" fill="#3B82F6" />
+  <rect x="36" y="59" width="6" height="3" rx="1" fill="#3B82F6" />
 
-  <!-- Circuit Traces & Corner Nodes -->
-  <path d="M14 14h6v6 M50 14h-6v6 M14 50h6v-6 M50 50h-6v-6" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
-  <circle cx="20" cy="20" r="1.5" fill="#38bdf8" />
-  <circle cx="44" cy="20" r="1.5" fill="#38bdf8" />
-  <circle cx="20" cy="44" r="1.5" fill="#38bdf8" />
-  <circle cx="44" cy="44" r="1.5" fill="#38bdf8" />
+  <!-- Circuit Trace Spine & Branches -->
+  <path d="M20 18v28" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  <path d="M20 18h20l4 4" stroke="#3B82F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="44" cy="22" r="3.2" fill="#0B1120" stroke="#38BDF8" stroke-width="2" />
+  <circle cx="44" cy="22" r="1.2" fill="#F1F5F9" />
 
-  <!-- Centerpiece: Engineering Graduation Cap Merged with Microchip Architecture -->
-  <!-- Cap Diamond Rhombus -->
-  <path d="M32 18L49 26L32 34L15 26Z" fill="url(#capGrad)" filter="url(#glow)" />
-  <!-- Cap Skull Cap Underbody -->
-  <path d="M22 29.5v5c0 4.5 4.5 7.5 10 7.5s10-3 10-7.5v-5" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" />
-  <!-- Tassel & Electric Pulse -->
-  <path d="M44 28.5v8c0 1.5 1 2.5 2 2.5" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" />
-  <circle cx="46" cy="39" r="1.2" fill="#fbbf24" />
+  <path d="M20 32h16" stroke="#3B82F6" stroke-width="3" stroke-linecap="round" />
+  <circle cx="36" cy="32" r="2.8" fill="#38BDF8" />
 
-  <!-- Center Core AI / Circuit Node -->
-  <circle cx="32" cy="26" r="2.5" fill="#ffffff" />
-  <circle cx="32" cy="26" r="4" fill="none" stroke="#67e8f9" stroke-width="1" opacity="0.8" />
+  <path d="M20 46h18l6-6" stroke="#3B82F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="44" cy="40" r="3.2" fill="#0B1120" stroke="#38BDF8" stroke-width="2" />
+  <circle cx="44" cy="40" r="1.2" fill="#F1F5F9" />
 </svg>

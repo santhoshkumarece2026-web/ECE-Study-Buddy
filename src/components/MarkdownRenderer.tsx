@@ -206,16 +206,16 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
           );
         } else {
           elements.push(
-            <div key={`code-${currentIndex}`} className="my-4 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900 shadow-xs">
-              <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-slate-800/90 border-slate-700/60 text-slate-300">
+            <div key={`code-${currentIndex}`} className="my-4 rounded-xl overflow-hidden border border-[#2A3850] bg-[#111827] shadow-sm">
+              <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-[#151F32] border-[#2A3850] text-[#A7B4C8]">
                 <span className="flex items-center gap-1.5 font-semibold">
-                  <Terminal className="w-3.5 h-3.5 text-blue-400" />
+                  <Terminal className="w-3.5 h-3.5 text-[#3B82F6]" />
                   <span>{codeLanguage.toUpperCase() || 'CODE'}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopyCode(codeText, currentIndex)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors text-xs cursor-pointer min-h-[30px]"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#1B2940] hover:bg-[#223350] border border-[#2A3850] text-[#F1F5F9] transition-colors text-xs cursor-pointer min-h-[30px]"
                   title="Copy code"
                 >
                   {copiedIndex === currentIndex ? (
@@ -225,13 +225,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <Copy className="w-3.5 h-3.5 text-[#7F8DA3]" />
                       <span>Copy</span>
                     </>
                   )}
                 </button>
               </div>
-              <pre className="p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed tabular-nums whitespace-pre text-emerald-300">
+              <pre className="p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed tabular-nums whitespace-pre text-[#34D399]">
                 <code>{codeText}</code>
               </pre>
             </div>
@@ -285,7 +285,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             {!isAnalogy && !isPitfall && !isSummary && !isTranscribed && !isSchematic && (
               <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
             )}
-            <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-wide">
+            <div className="text-sm sm:text-base font-bold text-[#F1F5F9] tracking-wide">
               {renderInlineFormatting(effectiveLine)}
             </div>
           </div>
@@ -298,7 +298,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
       const bulletContent = line.trim().substring(2);
       elements.push(
-        <li key={`li-${i}`} className="ml-4 sm:ml-5 list-disc text-slate-700 dark:text-slate-300 my-1 leading-relaxed text-sm sm:text-base break-words">
+        <li key={`li-${i}`} className="ml-4 sm:ml-5 list-disc text-[#CBD5E1] my-1 leading-relaxed text-sm sm:text-base break-words">
           {renderInlineFormatting(bulletContent)}
         </li>
       );
@@ -309,8 +309,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     const numMatch = line.trim().match(/^(\d+)\.\s+(.*)/);
     if (numMatch) {
       elements.push(
-        <div key={`num-${i}`} className="flex gap-2 my-1.5 ml-0.5 sm:ml-1 text-slate-700 dark:text-slate-300 text-sm sm:text-base break-words">
-          <span className="font-bold text-blue-600 dark:text-blue-400 min-w-[1.25rem] tabular-nums shrink-0">{numMatch[1]}.</span>
+        <div key={`num-${i}`} className="flex gap-2 my-1.5 ml-0.5 sm:ml-1 text-[#CBD5E1] text-sm sm:text-base break-words">
+          <span className="font-bold text-[#3B82F6] min-w-[1.25rem] tabular-nums shrink-0">{numMatch[1]}.</span>
           <div className="flex-1 leading-relaxed">{renderInlineFormatting(numMatch[2])}</div>
         </div>
       );
@@ -345,9 +345,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
       elements.push(
         <div
           key={`matrix-wall-${i}`}
-          className="my-3 overflow-x-auto rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-900/90 p-3 sm:p-4 shadow-2xs"
+          className="my-3 overflow-x-auto rounded-xl border border-[#2A3850] bg-[#111827] p-3 sm:p-4 shadow-sm"
         >
-          <pre className="font-mono text-xs sm:text-sm leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre tabular-nums">
+          <pre className="font-mono text-xs sm:text-sm leading-relaxed text-[#34D399] whitespace-pre tabular-nums">
             {matrixLines.join('\n')}
           </pre>
         </div>
@@ -384,16 +384,16 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
       } else {
         const curIdx = codeBlockIndex++;
         elements.push(
-          <div key={`pre-code-${curIdx}`} className="my-4 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900 shadow-xs">
-            <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-slate-800/90 border-slate-700/60 text-slate-300">
+          <div key={`pre-code-${curIdx}`} className="my-4 rounded-xl overflow-hidden border border-[#2A3850] bg-[#111827] shadow-sm">
+            <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-[#151F32] border-[#2A3850] text-[#A7B4C8]">
               <span className="flex items-center gap-1.5 font-semibold">
-                <Terminal className="w-3.5 h-3.5 text-blue-400" />
+                <Terminal className="w-3.5 h-3.5 text-[#3B82F6]" />
                 <span>CODE</span>
               </span>
               <button
                 type="button"
                 onClick={() => handleCopyCode(innerText, curIdx)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors text-xs cursor-pointer min-h-[30px]"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#1B2940] hover:bg-[#223350] border border-[#2A3850] text-[#F1F5F9] transition-colors text-xs cursor-pointer min-h-[30px]"
                 title="Copy code"
               >
                 {copiedIndex === curIdx ? (
@@ -403,13 +403,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-slate-400" />
+                    <Copy className="w-3.5 h-3.5 text-[#7F8DA3]" />
                     <span>Copy</span>
                   </>
                 )}
               </button>
             </div>
-            <pre className="p-3 sm:p-4 text-xs sm:text-sm font-mono overflow-x-auto text-slate-200 whitespace-pre">
+            <pre className="p-3 sm:p-4 text-xs sm:text-sm font-mono overflow-x-auto text-[#34D399] whitespace-pre">
               {innerText}
             </pre>
           </div>
@@ -449,7 +449,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
 
     // Standard paragraph
     elements.push(
-      <p key={`p-${i}`} className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm sm:text-base my-1.5 break-words">
+      <p key={`p-${i}`} className="text-[#CBD5E1] leading-relaxed text-sm sm:text-base my-1.5 break-words">
         {renderInlineFormatting(line)}
       </p>
     );
@@ -470,14 +470,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
       );
     } else {
       elements.push(
-        <div key="streaming-code" className="my-4 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900 shadow-xs">
-          <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-slate-800/90 border-slate-700/60 text-slate-300">
+        <div key="streaming-code" className="my-4 rounded-xl overflow-hidden border border-[#2A3850] bg-[#111827] shadow-sm">
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b text-xs font-mono bg-[#151F32] border-[#2A3850] text-[#A7B4C8]">
             <span className="flex items-center gap-1.5 font-semibold">
-              <Terminal className="w-3.5 h-3.5 text-blue-400" />
+              <Terminal className="w-3.5 h-3.5 text-[#3B82F6]" />
               <span>{codeLanguage.toUpperCase() || 'CODE'}</span>
             </span>
           </div>
-          <pre className="p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed tabular-nums whitespace-pre text-emerald-300">
+          <pre className="p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed tabular-nums whitespace-pre text-[#34D399]">
             <code>{codeText}</code>
           </pre>
         </div>
@@ -501,7 +501,7 @@ function renderInlineFormatting(text: string): React.ReactNode {
     const token = match[0];
     if (token.startsWith('**') && token.endsWith('**')) {
       parts.push(
-        <strong key={`bold-${match.index}`} className="font-semibold text-slate-900 dark:text-white">
+        <strong key={`bold-${match.index}`} className="font-semibold text-[#F1F5F9]">
           {token.slice(2, -2)}
         </strong>
       );
@@ -509,7 +509,7 @@ function renderInlineFormatting(text: string): React.ReactNode {
       parts.push(
         <code
           key={`code-${match.index}`}
-          className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-300 font-mono text-xs font-medium"
+          className="px-1.5 py-0.5 rounded bg-[#111827] border border-[#2A3850] text-[#60A5FA] font-mono text-xs font-medium"
         >
           {token.slice(1, -1)}
         </code>

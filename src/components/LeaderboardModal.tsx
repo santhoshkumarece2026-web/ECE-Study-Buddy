@@ -6,7 +6,6 @@ import {
   X, 
   Medal, 
   Crown, 
-  Sparkles, 
   Flame, 
   Target, 
   Zap, 
@@ -228,22 +227,22 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/65 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150">
       <div 
-        className="relative w-full max-w-4xl max-h-[92vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-4xl max-h-[92vh] bg-[#151F32] rounded-2xl shadow-2xl border border-[#2A3850] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="leaderboard-modal-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#2A3850] bg-[#111827] shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
               <Trophy className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 id="leaderboard-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                <h3 id="leaderboard-modal-title" className="text-base sm:text-lg font-bold text-[#F1F5F9] leading-tight">
                   Top Quiz Scores & Leaderboard
                 </h3>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${rankTier.badgeBg} flex items-center gap-1`}>
@@ -251,7 +250,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   <span>{rankTier.title}</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+              <p className="text-xs text-[#A7B4C8] mt-0.5 truncate">
                 Personal bests, performance tiers, and cohort benchmarks based on completed quizzes
               </p>
             </div>
@@ -259,7 +258,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-lg text-[#7F8DA3] hover:text-[#F1F5F9] hover:bg-[#1B2940] transition-colors cursor-pointer shrink-0"
             aria-label="Close leaderboard modal"
           >
             <X className="w-5 h-5" />
@@ -271,9 +270,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           {/* Student Profile Card & Summary Strip */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
             {/* User Profile Banner (md: 5 cols) */}
-            <div className="md:col-span-5 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-amber-50/30 dark:from-slate-900 dark:to-amber-950/20 flex flex-col justify-between">
+            <div className="md:col-span-5 p-4 rounded-xl border border-[#2A3850] bg-[#1B2940] flex flex-col justify-between">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#7F8DA3]">
                   Student Profile
                 </div>
                 <div className="flex items-center gap-2 mt-1">
@@ -287,14 +286,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                           if (e.key === 'Enter') handleSaveHandle();
                           if (e.key === 'Escape') setIsEditingHandle(false);
                         }}
-                        className="px-2 py-1 text-sm rounded-md border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white flex-1 focus:outline-none"
+                        className="px-2 py-1 text-sm rounded-md border border-[#3B82F6] bg-[#111827] text-[#F1F5F9] flex-1 focus:outline-none"
                         placeholder="Enter your name"
                         autoFocus
                         maxLength={30}
                       />
                       <button
                         onClick={handleSaveHandle}
-                        className="p-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        className="p-1 rounded-md bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors"
                         title="Save name"
                       >
                         <Check className="w-4 h-4" />
@@ -302,12 +301,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="font-bold text-slate-900 dark:text-white text-base truncate">
+                      <span className="font-bold text-[#F1F5F9] text-base truncate">
                         {studentHandle}
                       </span>
                       <button
                         onClick={() => setIsEditingHandle(true)}
-                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-md hover:bg-slate-200/50 dark:hover:bg-slate-800"
+                        className="p-1 text-[#7F8DA3] hover:text-[#F1F5F9] cursor-pointer rounded-md hover:bg-[#151F32]"
                         title="Edit display name"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -317,65 +316,65 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                  <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-[#151F32] border border-[#2A3850] text-[#3B82F6]">
                     {cohortPercentile}
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span className="text-xs text-[#A7B4C8] tabular-nums">
                     {totalPoints.toLocaleString()} Total Pts
                   </span>
                 </div>
               </div>
 
               {rankTier.nextPointsNeeded > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                  <span>Next Rank: <strong className="text-slate-700 dark:text-slate-300">{rankTier.nextTier}</strong></span>
-                  <span className="font-semibold text-amber-600 dark:text-amber-400 tabular-nums">+{rankTier.nextPointsNeeded} pts needed</span>
+                <div className="mt-3 pt-3 border-t border-[#2A3850] text-[11px] text-[#A7B4C8] flex items-center justify-between">
+                  <span>Next Rank: <strong className="text-[#F1F5F9]">{rankTier.nextTier}</strong></span>
+                  <span className="font-semibold text-amber-400 tabular-nums">+{rankTier.nextPointsNeeded} pts needed</span>
                 </div>
               )}
             </div>
 
             {/* Metric Cards (md: 7 cols) */}
             <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Best Score</span>
-                <div className="text-xl font-bold text-slate-900 dark:text-white tabular-nums mt-1">
+              <div className="p-3 rounded-xl border border-[#2A3850] bg-[#1B2940] flex flex-col justify-between">
+                <span className="text-[11px] text-[#A7B4C8] font-medium">Best Score</span>
+                <div className="text-xl font-bold text-[#F1F5F9] tabular-nums mt-1">
                   {bestScore > 0 ? `${bestScore} pts` : '—'}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5">Single Attempt</span>
+                <span className="text-[10px] text-[#7F8DA3] mt-0.5">Single Attempt</span>
               </div>
 
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Avg Accuracy</span>
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400 tabular-nums mt-1">
+              <div className="p-3 rounded-xl border border-[#2A3850] bg-[#1B2940] flex flex-col justify-between">
+                <span className="text-[11px] text-[#A7B4C8] font-medium">Avg Accuracy</span>
+                <div className="text-xl font-bold text-[#3B82F6] tabular-nums mt-1">
                   {rankedEntries.length > 0 ? `${averageAccuracy}%` : '—'}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5">Across All Quizzes</span>
+                <span className="text-[10px] text-[#7F8DA3] mt-0.5">Across All Quizzes</span>
               </div>
 
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">100% Perfect</span>
-                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">
+              <div className="p-3 rounded-xl border border-[#2A3850] bg-[#1B2940] flex flex-col justify-between">
+                <span className="text-[11px] text-[#A7B4C8] font-medium">100% Perfect</span>
+                <div className="text-xl font-bold text-emerald-400 tabular-nums mt-1">
                   {perfectScoreCount}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5">Flawless Runs</span>
+                <span className="text-[10px] text-[#7F8DA3] mt-0.5">Flawless Runs</span>
               </div>
 
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Quizzes Taken</span>
-                <div className="text-xl font-bold text-slate-900 dark:text-white tabular-nums mt-1">
+              <div className="p-3 rounded-xl border border-[#2A3850] bg-[#1B2940] flex flex-col justify-between">
+                <span className="text-[11px] text-[#A7B4C8] font-medium">Quizzes Taken</span>
+                <div className="text-xl font-bold text-[#F1F5F9] tabular-nums mt-1">
                   {rankedEntries.length}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5">Total Attempts</span>
+                <span className="text-[10px] text-[#7F8DA3] mt-0.5">Total Attempts</span>
               </div>
             </div>
           </div>
 
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#111827] border border-[#2A3850] text-xs">
             {/* Subject Filter */}
             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-              <span className="text-slate-500 dark:text-slate-400 font-medium shrink-0 flex items-center gap-1">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="text-[#A7B4C8] font-medium shrink-0 flex items-center gap-1">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#3B82F6]" />
                 <span>Subject:</span>
               </span>
               <div className="flex flex-wrap items-center gap-1">
@@ -383,8 +382,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   onClick={() => setSelectedSubjectFilter('all')}
                   className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer font-medium ${
                     selectedSubjectFilter === 'all'
-                      ? 'bg-blue-600 text-white font-semibold shadow-2xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-[#3B82F6] text-white font-semibold shadow-xs'
+                      : 'bg-[#1B2940] text-[#A7B4C8] hover:text-[#F1F5F9] border border-[#2A3850]'
                   }`}
                 >
                   All ({rankedEntries.length})
@@ -397,8 +396,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       onClick={() => setSelectedSubjectFilter(s.id)}
                       className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer font-medium ${
                         selectedSubjectFilter === s.id
-                          ? 'bg-blue-600 text-white font-semibold shadow-2xs'
-                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#3B82F6] text-white font-semibold shadow-xs'
+                          : 'bg-[#1B2940] text-[#A7B4C8] hover:text-[#F1F5F9] border border-[#2A3850]'
                       }`}
                     >
                       {s.shortName} ({count})
@@ -410,11 +409,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
             {/* Difficulty Filter */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-slate-500 dark:text-slate-400 font-medium">Difficulty:</span>
+              <span className="text-[#A7B4C8] font-medium">Difficulty:</span>
               <select
                 value={selectedDifficultyFilter}
                 onChange={(e) => setSelectedDifficultyFilter(e.target.value)}
-                className="px-2 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs focus:outline-none"
+                className="px-2 py-1 rounded-md bg-[#1B2940] border border-[#2A3850] text-[#F1F5F9] text-xs focus:outline-none focus:border-[#3B82F6]"
               >
                 <option value="all">All Difficulties</option>
                 <option value="Beginner">Beginner (1.0x)</option>
@@ -426,14 +425,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
           {/* Leaderboard Table / Cards */}
           {filteredEntries.length === 0 ? (
-            <div className="text-center py-12 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6 space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center">
-                <Trophy className="w-6 h-6 opacity-40" />
+            <div className="text-center py-12 rounded-xl border border-dashed border-[#2A3850] p-6 space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-amber-950/40 text-amber-400 flex items-center justify-center">
+                <Trophy className="w-6 h-6 opacity-60" />
               </div>
-              <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+              <h4 className="font-bold text-[#F1F5F9] text-sm">
                 No Quiz Scores Found for this Filter
               </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+              <p className="text-xs text-[#A7B4C8] max-w-sm mx-auto leading-relaxed">
                 Take a concept check quiz to record your score and claim the top ranking on the leaderboard!
               </p>
               <button
@@ -441,7 +440,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   onClose();
                   onStartQuiz();
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                className="px-4 py-2 rounded-xl bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
               >
                 <Zap className="w-3.5 h-3.5" />
                 <span>Start a Quiz Now</span>
@@ -449,7 +448,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 px-3">
+              <div className="flex items-center justify-between text-xs font-semibold text-[#7F8DA3] px-3">
                 <span>Rank & Quiz Topic</span>
                 <div className="flex items-center gap-6">
                   <span className="hidden sm:inline">Accuracy</span>
@@ -460,7 +459,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <div className="space-y-2">
                 {filteredEntries.map((entry) => {
                   const isTopThree = entry.rank <= 3;
-                  const rankBadge = entry.rank === 1 ? '🥇 1st' : entry.rank === 2 ? '🥈 2nd' : entry.rank === 3 ? '🥉 3rd' : `#${entry.rank}`;
+                  const rankBadge = entry.rank === 1 ? '1st' : entry.rank === 2 ? '2nd' : entry.rank === 3 ? '3rd' : `#${entry.rank}`;
                   
                   return (
                     <div
@@ -468,9 +467,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                         isTopThree
                           ? entry.rank === 1
-                            ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/90 dark:border-amber-900/60 shadow-2xs'
-                            : 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 shadow-2xs'
-                          : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/80'
+                            ? 'bg-amber-950/20 border-amber-800/60 shadow-sm'
+                            : 'bg-[#1B2940] border-[#2A3850] shadow-sm'
+                          : 'bg-[#151F32] border-[#2A3850]'
                       }`}
                     >
                       {/* Left: Rank & Title */}
@@ -478,12 +477,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         <span 
                           className={`w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg shrink-0 tabular-nums ${
                             entry.rank === 1
-                              ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
+                              ? 'bg-amber-950/80 border border-amber-800/80 text-amber-300'
                               : entry.rank === 2
-                              ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                              ? 'bg-[#151F32] border border-[#2A3850] text-[#F1F5F9]'
                               : entry.rank === 3
-                              ? 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              ? 'bg-amber-950/40 border border-amber-900/60 text-amber-400'
+                              : 'bg-[#111827] border border-[#2A3850] text-[#7F8DA3]'
                           }`}
                         >
                           {rankBadge}
@@ -491,33 +490,33 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                            <span className="font-semibold text-xs sm:text-sm text-[#F1F5F9] truncate">
                               {entry.topic}
                             </span>
                             {entry.accuracy === 100 && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5">
-                                <Sparkles className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800 flex items-center gap-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
                                 <span>Perfect</span>
                               </span>
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{entry.subjectName}</span>
-                            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">•</span>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#A7B4C8] mt-0.5">
+                            <span className="font-medium text-[#F1F5F9]">{entry.subjectName}</span>
+                            <span aria-hidden="true" className="select-none text-[#2A3850]">•</span>
                             <span className={`font-medium ${
                               entry.difficulty === 'Exam Level'
-                                ? 'text-purple-600 dark:text-purple-400'
+                                ? 'text-purple-400'
                                 : entry.difficulty === 'Core Concept'
-                                ? 'text-blue-600 dark:text-blue-400'
-                                : 'text-emerald-600 dark:text-emerald-400'
+                                ? 'text-[#3B82F6]'
+                                : 'text-emerald-400'
                             }`}>
                               {entry.difficulty}
                             </span>
-                            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">•</span>
+                            <span aria-hidden="true" className="select-none text-[#2A3850]">•</span>
                             <span className="tabular-nums">{entry.correctAnswers}/{entry.totalQuestions} correct</span>
-                            <span aria-hidden="true" className="select-none text-slate-300 dark:text-slate-600">•</span>
-                            <span>{entry.dateStr}</span>
+                            <span aria-hidden="true" className="select-none text-[#2A3850]">•</span>
+                            <span className="text-[#7F8DA3]">{entry.dateStr}</span>
                           </div>
                         </div>
                       </div>
@@ -525,13 +524,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       {/* Right: Accuracy & Points Score */}
                       <div className="flex items-center gap-4 sm:gap-6 shrink-0 text-right">
                         <div className="hidden sm:block text-right">
-                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                          <div className="text-xs font-semibold text-[#CBD5E1] tabular-nums">
                             {entry.accuracy}%
                           </div>
-                          <div className="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-1">
+                          <div className="w-16 h-1.5 rounded-full bg-[#111827] border border-[#2A3850] overflow-hidden mt-1">
                             <div
                               className={`h-full rounded-full ${
-                                entry.accuracy >= 80 ? 'bg-emerald-500' : entry.accuracy >= 60 ? 'bg-blue-500' : 'bg-amber-500'
+                                entry.accuracy >= 80 ? 'bg-emerald-500' : entry.accuracy >= 60 ? 'bg-[#3B82F6]' : 'bg-amber-500'
                               }`}
                               style={{ width: `${entry.accuracy}%` }}
                             />
@@ -539,10 +538,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         </div>
 
                         <div className="text-right">
-                          <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums">
+                          <span className="text-base sm:text-lg font-bold text-[#F1F5F9] tabular-nums">
                             {entry.score}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium block -mt-1">
+                          <span className="text-[10px] text-[#7F8DA3] font-medium block -mt-1">
                             pts
                           </span>
                         </div>
@@ -556,8 +555,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
 
         {/* Footer Bar */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
+        <div className="p-4 sm:p-5 border-t border-[#2A3850] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-[#7F8DA3] text-center sm:text-left">
             <span>Points formula rewards Exam Level difficulty (1.5x) and 100% accuracy streaks!</span>
           </div>
 
@@ -567,9 +566,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 onClose();
                 onStartQuiz('Exam Level');
               }}
-              className="flex-1 sm:flex-initial px-4 py-2 min-h-[38px] rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              className="flex-1 sm:flex-initial px-4 py-2 min-h-[38px] rounded-xl bg-purple-900/60 hover:bg-purple-800 border border-purple-700/80 text-purple-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <Flame className="w-3.5 h-3.5" />
+              <Flame className="w-3.5 h-3.5 text-purple-400" />
               <span>Exam Level (+1.5x)</span>
             </button>
 
@@ -578,7 +577,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 onClose();
                 onStartQuiz();
               }}
-              className="flex-1 sm:flex-initial px-4 py-2 min-h-[38px] rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              className="flex-1 sm:flex-initial px-4 py-2 min-h-[38px] rounded-xl bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Zap className="w-3.5 h-3.5" />
               <span>Take Quiz</span>
